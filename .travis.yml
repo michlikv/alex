@@ -4,6 +4,7 @@
 branches:
     only:
         - master
+        - travis_pykaldi
 
 language: python
 python:
@@ -31,18 +32,8 @@ before_install:
     - make install
     - cd pjsip-apps/src/python/
     - python setup-pjsuaxt.py install
-
-#install: 
-#    - pip install -q cython pystache pyyaml --use-mirrors
-#    - if [[ $TRAVIS_PYTHON_VERSION == 2.6 ]] ; then pip install --use-mirrors unittest2 ordereddict argparse ; fi
-#    # Openfst: building
-#    - pushd tools && make -j 4 openfst_tgt && popd
-#    # hack how to make available clapack.h
-#    - pushd tools && make -j 4 atlas && popd
-#    # Configure with ATLAS (default)
-#    - pushd src && ./configure --shared && popd
-#    - pushd src && make -j 4 && popd
-#    - pushd src/onl-rec && make -j 4 && popd
+    # Unpack and install precomplied openfst, pykaldi and pyfst
+    - wget https://s3-eu-west-1.amazonaws.com/ufal-dsg/pykaldi/pykaldi-travis_2.7.tar.gz/pykaldi/pykaldi_Ubuntu_12.04_LTS.tar.gz && tar xf pykaldi_Ubuntu_12.04_LTS.tar.gz && pushd pykaldi_Ubuntu_12.04_LTS && sudo cp -r openfst/lib /usr/local/lib && sudo ldconfig && sudo tar pyfst*.tar -C / && sudo tar pykaldi*.tar -C / ; popd
 
 script:
-    - echo "ahoj"
+    - echo "preinstalled passed. No tests implemented yet"
