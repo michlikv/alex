@@ -20,11 +20,7 @@ before_install:
     - echo "/usr/lib/atlas-base" | sudo tee /etc/ld.so.conf.d/atlas-lib.conf && ldconfig  # Hack: solution from http://unix.stackexchange.com/questions/52703/using-atlas-from-scipy
     - sudo pip install -r alex-requirements.txt
     - sudo easy_install pysox
-    - pip install pystache cython flask theano
-    - pip install --allow-unverified pyaudio --allow-unverified pyaudio pyaudio
-    - pip install pyfst
-    - mkdir tmp/
-    - cd tmp/
+    # - pip install --allow-unverified pyaudio --allow-unverified pyaudio pyaudio  # Does not work for Travis never worked for me
     - git clone https://github.com/UFAL-DSG/pjsip.git
     - cd pjsip
     - ./configure CXXFLAGS=-fPIC CFLAGS=-fPIC LDFLAGS=-fPIC CPPFLAGS=-fPIC
@@ -33,6 +29,7 @@ before_install:
     - make install
     - cd pjsip-apps/src/python/
     - python setup-pjsuaxt.py install
+    # pjsip end
     # Unpack and install precomplied openfst, pykaldi and pyfst
     - wget https://s3-eu-west-1.amazonaws.com/ufal-dsg/pykaldi/pykaldi-travis_2.7.tar.gz/pykaldi/pykaldi_Ubuntu_12.04_LTS.tar.gz && tar xf pykaldi_Ubuntu_12.04_LTS.tar.gz && pushd pykaldi_Ubuntu_12.04_LTS && sudo cp -r openfst/lib /usr/local/lib && sudo ldconfig && sudo tar pyfst*.tar -C / && sudo tar pykaldi*.tar -C / ; popd
 
