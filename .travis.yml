@@ -22,7 +22,7 @@ before_install:
     # install pjsip
     - git clone https://github.com/UFAL-DSG/pjsip.git && pushd pjsip && ./configure CXXFLAGS=-fPIC CFLAGS=-fPIC LDFLAGS=-fPIC CPPFLAGS=-fPIC && make dep && make && sudo make install && cd pjsip-apps/src/python/ && sudo python setup-pjsuaxt.py install && popd
     # Unpack and install precomplied openfst, pykaldi and pyfst
-    - wget https://s3-eu-west-1.amazonaws.com/ufal-dsg/pykaldi/pykaldi-travis_2.7.tar.gz/pykaldi/pykaldi_Ubuntu_12.04_LTS.tar.gz && tar xf pykaldi_Ubuntu_12.04_LTS.tar.gz && pushd pykaldi_Ubuntu_12.04_LTS && sudo cp -r openfst/lib /usr/local/lib && sudo ldconfig && sudo tar xf pyfst*.tar -C / && sudo tar xf pykaldi*.tar -C / ; popd
+    - wget https://s3-eu-west-1.amazonaws.com/ufal-dsg/pykaldi/pykaldi-travis_2.7.tar.gz/pykaldi/pykaldi_Ubuntu_12.04_LTS.tar.gz && tar xf pykaldi_Ubuntu_12.04_LTS.tar.gz && pushd pykaldi_Ubuntu_12.04_LTS && sudo cp -r openfst/lib/* /usr/local/lib && sudo ldconfig && sudo tar xf pyfst*.tar -C / && sudo tar xf pykaldi*.tar -C / ; popd
     # - sudo pip install -r alex-requirements.txt  > /dev/null # Probably better to install it on demand
     # - sudo easy_install pysox # Do we need it?
 script:
