@@ -18,8 +18,6 @@ before_install:
     # - sudo apt-get install -y portaudio19-dev  # Does not work on travis, do we need it?
     # - sudo apt-get install -y libsox-dev  # Does not work on
     - echo "/usr/lib/atlas-base" | sudo tee /etc/ld.so.conf.d/atlas-lib.conf && sudo ldconfig  # Hack: solution from http://unix.stackexchange.com/questions/52703/using-atlas-from-scipy
-    - sudo pip install -r alex-requirements.txt
-    - sudo easy_install pysox
     # - pip install --allow-unverified pyaudio --allow-unverified pyaudio pyaudio  # Does not work for Travis never worked for me
     - git clone https://github.com/UFAL-DSG/pjsip.git
     - cd pjsip
@@ -32,6 +30,7 @@ before_install:
     # pjsip end
     # Unpack and install precomplied openfst, pykaldi and pyfst
     - wget https://s3-eu-west-1.amazonaws.com/ufal-dsg/pykaldi/pykaldi-travis_2.7.tar.gz/pykaldi/pykaldi_Ubuntu_12.04_LTS.tar.gz && tar xf pykaldi_Ubuntu_12.04_LTS.tar.gz && pushd pykaldi_Ubuntu_12.04_LTS && sudo cp -r openfst/lib /usr/local/lib && sudo ldconfig && sudo tar pyfst*.tar -C / && sudo tar pykaldi*.tar -C / ; popd
-
+    # - sudo pip install -r alex-requirements.txt  > /dev/null # Probably better to install it on demand
+    # - sudo easy_install pysox # Do we need it?
 script:
     - echo "preinstalled passed. No tests implemented yet"
