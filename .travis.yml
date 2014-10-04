@@ -26,4 +26,5 @@ before_install:
     # - sudo pip install -r alex-requirements.txt  > /dev/null # Probably better to install it on demand
     # - sudo easy_install pysox # Do we need it?
 script:
-    - echo "preinstalled passed. No tests implemented yet"
+    - python -c 'import alex.applications.vhub'
+    - echo "Preinstalled passed. No proper tests implemented yet"

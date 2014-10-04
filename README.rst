@@ -46,6 +46,10 @@ Missing features:
 
 Installation
 ------------
+
+..  image:: https://travis-ci.org/UFAL-DSG/alex.png
+    :target: https://travis-ci.org/UFAL-DSG/alex
+
 Please follow the instructions provided in :doc:`INSTALL`.
 
 Coding style
