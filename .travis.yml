@@ -1,8 +1,7 @@
 # http://about.travis-ci.org/docs/user/ci-environment/
 # http://about.travis-ci.org/docs/user/build-configuration/
 # Travis uses Ubuntu 64 12.04
-virtualenv:
-    - "2.7_with_system_site_packages"
+
 branches:
     only:
         - master
@@ -10,7 +9,7 @@ branches:
 
 language: python
 python:
-    - "2.7" 
+    - "2.7_with_system_site_packages"
 compiler:
     - gcc
 
