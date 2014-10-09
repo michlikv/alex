@@ -6,6 +6,7 @@ if __name__ == "__main__":
     import autopath
 
 import alex.utils.audio as audio
+import alex.utils.audio_play as audio_play
 
 from alex.components.tts.flite import FliteTTS
 from alex.utils.config import Config
@@ -42,4 +43,4 @@ if __name__ == '__main__':
     audio.save_wav(cfg, './tmp/flite_tts.wav', wav)
 
     print 'playing audio'
-    audio.play(cfg, wav)
+    audio_play.play(cfg, wav)
