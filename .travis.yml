@@ -19,7 +19,7 @@ before_install:
     - echo "/usr/lib/atlas-base" | sudo tee /etc/ld.so.conf.d/atlas-lib.conf && sudo ldconfig  # Hack: solution from http://unix.stackexchange.com/questions/52703/using-atlas-from-scipy
     # - sudo apt-get install -y portaudio19-dev  # Does not work on travis, do we need it?
     # - sudo apt-get install -y libsox-dev  # Does not work on
-    - pip install --allow-unverified pyaudio --allow-unverified pyaudio pyaudio  # Does not work for Travis never worked for me
+    #- pip install --allow-unverified pyaudio --allow-unverified pyaudio pyaudio  # Does not work for Travis never worked for me
     # install pjsip
     - git clone https://github.com/UFAL-DSG/pjsip.git && pushd pjsip && git checkout travis && ./configure CXXFLAGS=-fPIC CFLAGS=-fPIC LDFLAGS=-fPIC CPPFLAGS=-fPIC && make dep && make && sudo make install && cd pjsip-apps/src/python/ && sudo pip install . && popd
     # Unpack and install precomplied openfst, pykaldi and pyfst
