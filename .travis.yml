@@ -21,7 +21,7 @@ install:
     # - sudo apt-get install -y libsox-dev  # Does not work on
     #- pip install --allow-unverified pyaudio --allow-unverified pyaudio pyaudio  # Does not work for Travis never worked for me
     # install pjsip
-    - git clone https://github.com/UFAL-DSG/pjsip.git && pushd pjsip && git checkout travis && ./configure CXXFLAGS=-fPIC CFLAGS=-fPIC LDFLAGS=-fPIC CPPFLAGS=-fPIC && make dep && make && sudo make install && cd pjsip-apps/src/python/ && sudo pip install . && popd && python -c 'import pjsuaxt'
+    - git clone https://github.com/UFAL-DSG/pjsip.git && pushd pjsip && git checkout travis && ./configure CXXFLAGS=-fPIC CFLAGS=-fPIC LDFLAGS=-fPIC CPPFLAGS=-fPIC && make dep && make && sudo make install && cd pjsip-apps/src/python/ && pip install . && popd && python -c 'import pjsuaxt'
     # Unpack and install precomplied openfst, pykaldi and pyfst
     - wget https://s3-eu-west-1.amazonaws.com/ufal-dsg/pykaldi/pykaldi-travis_2.7.tar.gz/pykaldi/pykaldi_Ubuntu_12.04_LTS.tar.gz && tar xf pykaldi_Ubuntu_12.04_LTS.tar.gz && pushd pykaldi_Ubuntu_12.04_LTS && sudo cp -r openfst/lib/* /usr/local/lib && sudo ldconfig && sudo tar xf pyfst*.tar -C / && sudo tar xf pykaldi*.tar -C / ; popd
     # - sudo pip install -r alex-requirements.txt  > /dev/null # Probably better to install it on demand
