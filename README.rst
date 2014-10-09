@@ -4,6 +4,13 @@
 Alex Dialogue Systems Framework
 =================================================
 
+..  image:: https://travis-ci.org/UFAL-DSG/alex.png
+    :target: https://travis-ci.org/UFAL-DSG/alex
+
+.. image:: https://landscape.io/github/UFAL-DSG/alex/master/landscape.png
+   :target: https://landscape.io/github/UFAL-DSG/alex/master
+   :alt: Code Health
+   
 Description
 -----------------
 The Alex Dialogue Systems Framework is named after `the famous parrot Alex <http://en.wikipedia.org/wiki/Alex_(parrot)>`_.
@@ -46,9 +53,6 @@ Missing features:
 
 Installation
 ------------
-
-..  image:: https://travis-ci.org/UFAL-DSG/alex.png
-    :target: https://travis-ci.org/UFAL-DSG/alex
 
 Please follow the instructions provided in :doc:`INSTALL`.
 
