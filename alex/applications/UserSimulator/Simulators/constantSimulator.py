@@ -1,19 +1,18 @@
 #!/usr/bin/env python
 # encoding: utf8
 
+from __future__ import unicode_literals
 import random
-
 from simulator import Simulator
 from alex.components.slu.da import DialogueAct, DialogueActNBList
 
-class Constant_simulator(Simulator):
+class ConstantSimulator(Simulator):
 
     def __init__(self):
         random.seed(19910604)
 
     def generate_response(self, system_da):
         nblist = DialogueActNBList()
-        nblist.add(1.0, DialogueAct('silence()'))
 
         # randomly generate silence or hangup :)
         if random.randint(0, 4) == 0:

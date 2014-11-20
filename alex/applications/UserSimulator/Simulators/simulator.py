@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 # encoding: utf8
 
+from __future__ import unicode_literals
 import abc
 
 class Simulator(object):

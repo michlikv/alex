@@ -12,7 +12,7 @@ from alex.components.slu.exceptions import DialogueActException, DialogueActItem
 from alex.components.dm.common import dm_factory, get_dm_type
 from alex.utils.config import Config
 
-from Simulators.constant_simulator import Constant_simulator
+from Simulators import constantSimulator, simpleBigramSimulator
 
 
 
@@ -30,10 +30,16 @@ class Generator:
         self.dm = dm_factory(dm_type, cfg)
         self.dm.new_dialogue()
         #TODO config user simulators somehow
-        self.simulator = Constant_simulator()
+        self.bigram_init()
 
+    def constant_init(self):
+        self.simulator = constantSimulator.ConstantSimulator()
 
-    #TODO nechci tohle tady
+    def bigram_init(self):
+        self.simulator = simpleBigramSimulator.SimpleBigramSimulator()
+        self.simulator.train_simulator('list-files-300.txt')
+
+    #TODO nechci tohle tady asi
     def output_da(self, da):
         """Prints the system dialogue act to the output."""
         print "System DA:", unicode(da)
@@ -49,8 +55,7 @@ class Generator:
         try:
             user_nblist = DialogueActNBList().add(1.0, DialogueAct())
 
-            #TODO while User DA is not "hangUp"
-            while unicode(user_nblist.get_best_da()) != 'silence()&hangup()':
+            while unicode(user_nblist.get_best_da()) != unicode('hangup()'):
             #    self.cfg['Logging']['session_logger'].turn("system")
 
 #               generate DM dialogue act
@@ -67,7 +72,6 @@ class Generator:
 
 #               pass it to the dialogue manager
                 self.dm.da_in(user_nblist)
-
         except:
             self.cfg['Logging']['system_logger'].exception('Uncaught exception in Generation process.')
             raise
@@ -92,6 +96,8 @@ if __name__ == '__main__':
 
     parser.add_argument('-c', "--configs", nargs='+',
                         help='additional configuration files')
+    parser.add_argument('-n', "--num", type=int,
+                        help='number of generated dialogues')
     args = parser.parse_args()
 
     cfg = Config.load_configs(args.configs)
@@ -109,4 +115,10 @@ if __name__ == '__main__':
     # cfg['Logging']['session_logger'].input_source("dialogue acts")
 
     generator = Generator(cfg)
-    generator.run()
+    num_iter = args.num
+
+    #todo for nejaky nastaveny pocet rozhovoru - zatim z comandliny
+    for i in range(0,num_iter):
+        generator.run()
+
+    print "PYTHON Y U NOT END!"
