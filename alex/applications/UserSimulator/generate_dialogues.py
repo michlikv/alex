@@ -12,7 +12,8 @@ from alex.components.slu.exceptions import DialogueActException, DialogueActItem
 from alex.components.dm.common import dm_factory, get_dm_type
 from alex.utils.config import Config
 
-from Simulators import constantSimulator, simpleBigramSimulator
+from Simulators import constantSimulator, simpleNgramSimulator, NgramSimulatorFiltered
+from Generators.randomGenerator import RandomGenerator
 
 
 
@@ -28,18 +29,24 @@ class Generator:
         self.cfg = cfg
         dm_type = get_dm_type(cfg)
         self.dm = dm_factory(dm_type, cfg)
-        self.dm.new_dialogue()
-        #TODO config user simulators somehow
-        self.bigram_init()
+
+        self.simulator = None
+        #TODO config user simulators somehow (?factory?)
+        #self.bigram_filtered_init(cfg)\
+        self.bigram_init(cfg)
+        RandomGenerator()
 
     def constant_init(self):
         self.simulator = constantSimulator.ConstantSimulator()
 
-    def bigram_init(self):
-        self.simulator = simpleBigramSimulator.SimpleBigramSimulator()
+    def bigram_init(self, cfg):
+        self.simulator = simpleNgramSimulator.SimpleNgramSimulator(cfg)
         self.simulator.train_simulator('list-files-300.txt')
 
-    #TODO nechci tohle tady asi
+    def bigram_filtered_init(self, cfg):
+        self.simulator = NgramSimulatorFiltered.NgramSimulatorFilterSlots(cfg)
+        self.simulator.train_simulator('list-files-300.txt')
+
     def output_da(self, da):
         """Prints the system dialogue act to the output."""
         print "System DA:", unicode(da)
@@ -53,22 +60,23 @@ class Generator:
     def run(self):
         """Controls the dialogue manager and user simulator."""
         try:
+            self.dm.new_dialogue()
             user_nblist = DialogueActNBList().add(1.0, DialogueAct())
 
-            while unicode(user_nblist.get_best_da()) != unicode('hangup()'):
+            while unicode(user_nblist.get_best_da()).find('hangup()') == -1:
             #    self.cfg['Logging']['session_logger'].turn("system")
 
 #               generate DM dialogue act
             #    self.dm.log_state()
-                sytem_da = self.dm.da_out()
-                self.output_da(sytem_da)
+                system_da = self.dm.da_out()
+                self.output_da(system_da)
 
 #               generate User dialogue act
             #    self.cfg['Logging']['session_logger'].turn("user")
                 #TODO log state
-                user_nblist = self.simulator.generate_response(sytem_da)
+                user_nblist = self.simulator.generate_response(system_da)
                 self.output_nblist(user_nblist)
-                #TODO log nb list
+                #TODO log nb list?
 
 #               pass it to the dialogue manager
                 self.dm.da_in(user_nblist)

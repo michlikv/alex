@@ -12,23 +12,24 @@ from alex.components.slu.da import DialogueAct
 def defdictint():
     return defaultdict(int)
 
+
 class NgramsTrained(TrainedStructure):
 
     structure = defaultdict(defdictint)
     structure_unigrams = defaultdict(int)
     #self.structure_counts = defaultdict(int)
 
-    def __init__(self,n):
+    def __init__(self, n):
         self.ngram_n = n
         self.prefix = ['<s>']*(n-2) if (n-2) > 0 else []
         self.pp = pprint.PrettyPrinter(indent=4)
 
     def train_counts(self, acts_list):
-        bigr = list(NgramsTrained._ngrams( self.prefix+acts_list, self.ngram_n))
-        bigr = Counter([gram for gram, pos in zip(bigr, range(0,len(bigr))) if pos % 2 == 0])
+        bigr = list(NgramsTrained._ngrams(self.prefix+acts_list, self.ngram_n))
+        bigr = Counter([gram for gram, pos in zip(bigr, range(0, len(bigr))) if pos % 2 == 0])
         # print bigr
         # ('cond')->'it'->count
-        for ngram,count in bigr.iteritems():
+        for ngram, count in bigr.iteritems():
             # print "|",ngram,"|",count,"|"
             self.structure[ngram[:-1]][ngram[-1]] += count
             self.structure_unigrams[ngram[-1]] += count
@@ -42,14 +43,13 @@ class NgramsTrained(TrainedStructure):
         else:
             return None
 
-    # def print_table_bigrams(self):
-    #     #print self.pp.pprint(self.structure.keys())
-    #     print self.pp.pprint(dict(self.structure[(unicode(DialogueAct('hello()')),)],sort_keys=False, indent=2))
-    #     print 'asking for ',(unicode(DialogueAct('hello()')),)
-    #
-    # def print_table_unigrams(self):
-    #
-    #     print self.pp.pprint(dict(self.structure_unigrams,sort_keys=False, indent=2))
+    def print_table_bigrams(self):
+        #print self.pp.pprint(self.structure.keys())
+        print self.pp.pprint(dict(self.structure[(unicode(DialogueAct('hello()')),)], sort_keys=False, indent=2))
+        print 'asking for ', (unicode(DialogueAct('hello()')),)
+
+    def print_table_unigrams(self):
+        print self.pp.pprint(dict(self.structure_unigrams, sort_keys=False, indent=2))
 
     # returns list of possible reactions by unigram prob
     # or none if empty
