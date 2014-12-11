@@ -164,3 +164,10 @@ class Preprocessing:
             return dialogue[-1].append(DialogueActItem(Preprocessing.end_of_dialogue))
         else:
             return dialogue.append(DialogueAct(Preprocessing.end_of_dialogue+'()'))
+
+    @staticmethod
+    def add_end_string(dialogue):
+        if len(dialogue) % 2 == 0:
+            return dialogue[-1]+'&'+Preprocessing.end_of_dialogue+'()'
+        else:
+            return dialogue.append(Preprocessing.end_of_dialogue+'()')

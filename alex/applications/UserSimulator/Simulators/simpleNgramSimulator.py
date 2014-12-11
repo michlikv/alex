@@ -16,6 +16,7 @@ from Generators.randomGenerator import RandomGenerator
 class SimpleNgramSimulator(Simulator):
 
     def __init__(self, cfg):
+        self.cfg = cfg
         self.n = 2
         self.simulator = NgramsTrained(self.n)
         #self.slu = slu_factory(cfg)
@@ -30,6 +31,7 @@ class SimpleNgramSimulator(Simulator):
                 dialogue = Preprocessing.prepare_conversations(FileReader.read_file(file),
                                                                Preprocessing.create_act_from_stack_use_last,
                                                                Preprocessing.create_act_from_stack_use_last)
+                Preprocessing.add_end_string(dialogue)
             except:
                 self.cfg['Logging']['system_logger'].info('Error: '+file)
             self.simulator.train_counts(dialogue)
