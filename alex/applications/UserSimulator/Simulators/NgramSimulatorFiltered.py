@@ -16,38 +16,45 @@ from Generators.randomGenerator import RandomGenerator
 class NgramSimulatorFilterSlots(Simulator):
 
     def __init__(self, cfg):
-        #todo N will be in  CFG?.
+        # todo N will be in  CFG?.
+        self.cfg = cfg
         self.n = 2
         self.simulator = NgramsTrained(self.n)
         self.slotvals = NgramsTrained(2)
-  #      self.slu = slu_factory(cfg)
 
     def train_simulator(self, filename_filelist):
         list_of_files = FileReader.read_file(filename_filelist)
         self.simulator = NgramsTrained(self.n)
 
-        for file in list_of_files:
-            print "processing file", file
+        for f in list_of_files:
+            self.cfg['Logging']['system_logger'].info('Processing file: '+f)
 
-            # read file to list
-            dialogue = FileReader.read_file(file)
-            # create alternating user and system turns
-            dialogue = Preprocessing.filter_acts_one_only(dialogue)
+            try:
+                # read file to list
+                dialogue = FileReader.read_file(f)
+                # create alternating user and system turns
+                dialogue = Preprocessing.prepare_conversations(dialogue,
+                                                               Preprocessing.create_act_from_stack_use_last,
+                                                               Preprocessing.create_act_from_stack_use_last)
 
-            #todo convert every system turn do dialogue act using SLU module
-            #dialogue = Preprocessing.convert_string_to_dialogue_acts("")
+                #dialogue = Preprocessing.convert_string_to_dialogue_acts("")
+                dialogue = [DialogueAct(d) for d in dialogue]
 
-            # save slot values
-            slot_values = Preprocessing.get_slot_names_plus_values_from_dialogue(dialogue)
-            # remove slot values
-            dialogue = Preprocessing.remove_slot_values_from_dialogue(dialogue)
-            #todo not implemented yet, merge connection info to one dialogue act givingConnectionInfo()
-            #todo bacha tohle bere jenom jeden DA, musi se tim protahnout cely dialog
-            #dialogue = Preprocessing.shorten_connection_info(dialogue)
+                Preprocessing.add_end_da(dialogue)
+                # save slot values
+                slot_values = Preprocessing.get_slot_names_plus_values_from_dialogue(dialogue)
+                # remove slot values
+                Preprocessing.remove_slot_values_from_dialogue(dialogue)
 
-            self.simulator.train_counts(dialogue)
-            self.slotvals.train_counts(slot_values)
-        # self.simulator.print_table_bigrams()
+                #todo not implemented yet, merge connection info to one dialogue act givingConnectionInfo()
+                #todo bacha tohle bere jenom jeden DA, musi se tim protahnout cely dialog
+                #dialogue = Preprocessing.shorten_connection_info(dialogue)
+
+                self.simulator.train_counts(dialogue)
+                self.slotvals.train_counts(slot_values)
+                # self.simulator.print_table_bigrams()
+            except:
+                self.cfg['Logging']['system_logger'].info('Error: '+f)
 
     def load_simulator(self, filename):
         self.simulator = NgramsTrained.load(filename)
@@ -58,10 +65,10 @@ class NgramSimulatorFilterSlots(Simulator):
     def generate_response(self, system_da):
         # preprocess DA
         da_unicode = unicode(system_da)
-        #da_unicode = Preprocessing.shorten_connection_info(da_unicode)
-        da_unicode = Preprocessing.remove_slot_values(da_unicode)
+        # da_unicode = Preprocessing.shorten_connection_info(da_unicode)
+        Preprocessing.remove_slot_values(system_da)
 
-        hist = (da_unicode,)
+        hist = (system_da,)
         nblist = DialogueActNBList()
 
         # print "generating:", hist
@@ -71,23 +78,24 @@ class NgramSimulatorFilterSlots(Simulator):
         if not reactions:
             reactions = self.simulator.get_possible_unigrams()
 
-        response = RandomGenerator.generate_random_response(
-            reactions[0], reactions[1], reactions[2])
+        response = RandomGenerator.generate_random_response(reactions[0], reactions[1], reactions[2])
 
-        da_response = DialogueAct(response)
-        slots = da_response.get_slots_and_values()
+        #da_response = DialogueAct(response)
+        #slots = response.get_slots_and_values()
 
         #todo add slot values check this.
-        #todo could add according to a GOAL
-        for name, value in slots:
-            possible_values = self.slotvals.get_possible_reactions( (name,) )
-            if not possible_values:
-                # TODO what IF there IS NO VALUE FOR THE SLOT
-                possible_values = self.slotvals.get_possible_unigrams()
-            selected = RandomGenerator.generate_random_response(possible_values[0],possible_values[1],possible_values[2])
-            response = re.sub(name+'=""', name+'="'+selected+'"', response)
+        for dai in response.dais:
+            if dai.value:
+                possible_values = self.slotvals.get_possible_reactions((dai.name,))
+                if not possible_values:
+                    possible_values = self.slotvals.get_possible_unigrams()
 
-        response = DialogueAct(response)
+                selected = RandomGenerator.generate_random_response(possible_values[0],
+                                                                    possible_values[1],
+                                                                    possible_values[2])
+                dai.value = selected
+
+        #response = DialogueAct(response)
         nblist.add(1.0, response)
 
         nblist.merge()

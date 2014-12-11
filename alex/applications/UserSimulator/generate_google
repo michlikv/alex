@@ -1,3 +1,3 @@
 #!/bin/bash
 
-./generate_dialogues.py -c ptics.cfg google.cfg -n $1
+./generate_dialogues.py -c ptics.cfg ptics_hdc_slu.cfg google.cfg -n $1

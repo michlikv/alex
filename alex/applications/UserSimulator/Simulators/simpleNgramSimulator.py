@@ -16,7 +16,6 @@ from Generators.randomGenerator import RandomGenerator
 class SimpleNgramSimulator(Simulator):
 
     def __init__(self, cfg):
-        #todo N will be in  CFG.
         self.n = 2
         self.simulator = NgramsTrained(self.n)
         #self.slu = slu_factory(cfg)
@@ -25,22 +24,26 @@ class SimpleNgramSimulator(Simulator):
         list_of_files = FileReader.read_file(filename_filelist)
         self.simulator = NgramsTrained(self.n)
 
-        # todo use lambda for preprocessing function???
         for file in list_of_files:
             print "processing file", file
-            dialogue = Preprocessing.filter_acts_one_only(FileReader.read_file(file))
+            try:
+                dialogue = Preprocessing.prepare_conversations(FileReader.read_file(file),
+                                                               Preprocessing.create_act_from_stack_use_last,
+                                                               Preprocessing.create_act_from_stack_use_last)
+            except:
+                self.cfg['Logging']['system_logger'].info('Error: '+file)
             self.simulator.train_counts(dialogue)
-        # self.simulator.print_table_bigrams()
 
-    def train_simulator_using_slu(self,filename_filelist, slu):
-        list_of_files = FileReader.read_file(filename_filelist)
-        self.simulator = NgramsTrained(2)
 
-        for file in list_of_files:
-            print "processing file", file
-            dialogue = Preprocessing.filter_acts_one_only(FileReader.read_file(file))
-            self.simulator.train_counts(dialogue)
-        # self.simulator.print_table_bigrams()
+    # def train_simulator_using_slu(self,filename_filelist, slu):
+    #     list_of_files = FileReader.read_file(filename_filelist)
+    #     self.simulator = NgramsTrained(2)
+    #
+    #     for file in list_of_files:
+    #         print "processing file", file
+    #         dialogue = Preprocessing.prepare_conversations(FileReader.read_file(file))
+    #         self.simulator.train_counts(dialogue)
+    #     # self.simulator.print_table_bigrams()
 
     def load_simulator(self, filename):
         self.simulator = NgramsTrained.load(filename)
@@ -60,7 +63,7 @@ class SimpleNgramSimulator(Simulator):
             reactions = self.simulator.get_possible_unigrams()
 
         response = DialogueAct(RandomGenerator.generate_random_response(
-                        reactions[0], reactions[1], reactions[2]))
+                               reactions[0], reactions[1], reactions[2]))
         nblist.add(1.0, response)
 
         nblist.merge()

@@ -32,8 +32,8 @@ class Generator:
 
         self.simulator = None
         #TODO config user simulators somehow (?factory?)
-        #self.bigram_filtered_init(cfg)\
-        self.bigram_init(cfg)
+        self.bigram_filtered_init(cfg)
+        #self.bigram_init(cfg)
         RandomGenerator()
 
     def constant_init(self):
@@ -41,11 +41,11 @@ class Generator:
 
     def bigram_init(self, cfg):
         self.simulator = simpleNgramSimulator.SimpleNgramSimulator(cfg)
-        self.simulator.train_simulator('list-files-300.txt')
+        self.simulator.train_simulator('data-lists/03-slu-500.txt')
 
     def bigram_filtered_init(self, cfg):
         self.simulator = NgramSimulatorFiltered.NgramSimulatorFilterSlots(cfg)
-        self.simulator.train_simulator('list-files-300.txt')
+        self.simulator.train_simulator('data-lists/03-slu-500.txt')
 
     def output_da(self, da):
         """Prints the system dialogue act to the output."""
@@ -128,5 +128,3 @@ if __name__ == '__main__':
     #todo for nejaky nastaveny pocet rozhovoru - zatim z comandliny
     for i in range(0,num_iter):
         generator.run()
-
-    print "PYTHON Y U NOT END!"
