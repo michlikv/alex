@@ -4,7 +4,7 @@ import random
 class RandomGenerator:
 
     def __init__(self):
-        #random.seed(19910604)
+        random.seed(19910604)
         pass
 
     @staticmethod

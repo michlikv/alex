@@ -8,23 +8,19 @@ from itertools import tee, islice
 from TrainedStruct import TrainedStructure
 from alex.components.slu.da import DialogueAct
 
-
-def defdictint():
-    return defaultdict(int)
-
-
 class NgramsTrained(TrainedStructure):
 
-    structure = defaultdict(defdictint)
-    structure_unigrams = defaultdict(int)
-    #self.structure_counts = defaultdict(int)
-
     def __init__(self, n):
+        self.structure_unigrams = defaultdict(int)
+        self.structure = defaultdict(self.defdictint)
         self.ngram_n = n
         self.prefix = ['<s>']*(n-2) if (n-2) > 0 else []
         self.pp = pprint.PrettyPrinter(indent=4)
 
-    def train_counts(self, acts_list):
+    def defdictint(self):
+        return defaultdict(int)
+
+    def train_counts(self, acts_list, class_type):
         bigr = list(NgramsTrained._ngrams(self.prefix+acts_list, self.ngram_n))
         bigr = Counter([gram for gram, pos in zip(bigr, range(0, len(bigr))) if pos % 2 == 0])
         # print bigr
@@ -32,6 +28,11 @@ class NgramsTrained(TrainedStructure):
         for ngram, count in bigr.iteritems():
             # print "|",ngram,"|",count,"|"
             self.structure[ngram[:-1]][ngram[-1]] += count
+            # if not isinstance(ngram[0], class_type) or not isinstance(ngram[-1], class_type):
+            #     print ngram[-1],"IS NOT DA!!!"
+            # if ngram[-1] == u'tram' or ngram[0] == u'tram':
+            #     print "TADY TADY TADY", ngram
+
             self.structure_unigrams[ngram[-1]] += count
 
     # returns list of possible reactions with its counts and total count as tuple
@@ -61,12 +62,12 @@ class NgramsTrained(TrainedStructure):
             return None
 
     @staticmethod
-    def _ngrams(lst,n):
+    def _ngrams(lst, n):
         tlst = lst
         while True:
             a, b = tee(tlst)
-            l = tuple(islice(a,n))
-            if (len(l) == n ):
+            l = tuple(islice(a, n))
+            if len(l) == n:
                 yield l
                 next(b)
                 tlst = b

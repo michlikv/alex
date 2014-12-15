@@ -50,8 +50,9 @@ class NgramSimulatorFilterSlots(Simulator):
                 #todo bacha tohle bere jenom jeden DA, musi se tim protahnout cely dialog
                 #dialogue = Preprocessing.shorten_connection_info(dialogue)
 
-                self.simulator.train_counts(dialogue)
-                self.slotvals.train_counts(slot_values)
+                self.simulator.train_counts(dialogue, DialogueAct)
+
+                self.slotvals.train_counts(slot_values, unicode)
                 # self.simulator.print_table_bigrams()
             except:
                 self.cfg['Logging']['system_logger'].info('Error: '+f)
@@ -83,7 +84,6 @@ class NgramSimulatorFilterSlots(Simulator):
         #da_response = DialogueAct(response)
         #slots = response.get_slots_and_values()
 
-        #todo add slot values check this.
         for dai in response.dais:
             if dai.value:
                 possible_values = self.slotvals.get_possible_reactions((dai.name,))

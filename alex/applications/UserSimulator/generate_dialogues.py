@@ -124,7 +124,7 @@ if __name__ == '__main__':
 
     generator = Generator(cfg)
     num_iter = args.num
-
+    num_iter = 3
     #todo for nejaky nastaveny pocet rozhovoru - zatim z comandliny
     for i in range(0,num_iter):
         generator.run()
