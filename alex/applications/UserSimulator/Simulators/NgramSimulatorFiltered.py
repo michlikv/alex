@@ -3,8 +3,7 @@
 
 from __future__ import unicode_literals
 from alex.components.slu.da import DialogueAct, DialogueActNBList
-from alex.components.slu.common import slu_factory
-import re
+from copy import deepcopy
 
 from simulator import Simulator
 from Readers.FileReader import FileReader
@@ -46,9 +45,7 @@ class NgramSimulatorFilterSlots(Simulator):
                 # remove slot values
                 Preprocessing.remove_slot_values_from_dialogue(dialogue)
 
-                #todo not implemented yet, merge connection info to one dialogue act givingConnectionInfo()
-                #todo bacha tohle bere jenom jeden DA, musi se tim protahnout cely dialog
-                #dialogue = Preprocessing.shorten_connection_info(dialogue)
+                dialogue = [Preprocessing.shorten_connection_info(a) for a in dialogue]
 
                 self.simulator.train_counts(dialogue, DialogueAct)
 
@@ -68,8 +65,9 @@ class NgramSimulatorFilterSlots(Simulator):
         da_unicode = unicode(system_da)
         # da_unicode = Preprocessing.shorten_connection_info(da_unicode)
         Preprocessing.remove_slot_values(system_da)
+        filtered = Preprocessing.shorten_connection_info(system_da)
 
-        hist = (system_da,)
+        hist = (filtered,)
         nblist = DialogueActNBList()
 
         # print "generating:", hist
@@ -78,11 +76,12 @@ class NgramSimulatorFilterSlots(Simulator):
         # print "Possible reactions:", reactions
         if not reactions:
             reactions = self.simulator.get_possible_unigrams()
+        else:
+            print "DA found in history :-)", filtered
 
         response = RandomGenerator.generate_random_response(reactions[0], reactions[1], reactions[2])
 
-        #da_response = DialogueAct(response)
-        #slots = response.get_slots_and_values()
+        response = deepcopy(response)
 
         for dai in response.dais:
             if dai.value:

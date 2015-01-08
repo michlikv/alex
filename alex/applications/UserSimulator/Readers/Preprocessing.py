@@ -3,15 +3,15 @@
 
 from __future__ import unicode_literals
 from alex.components.asr.utterance import Utterance
-from alex.components.slu.da import DialogueAct,DialogueActItem
+from alex.components.slu.da import DialogueAct, DialogueActItem
 from compiler.ast import flatten
 
 
 class Preprocessing:
-
     user_del = "user:"
     system_del = "system:"
     end_of_dialogue = 'hangup'
+    connection_info_da = DialogueActItem('connectionInfo')
 
     @staticmethod
     def prepare_conversations(acts_list, user_method, system_method):
@@ -28,8 +28,8 @@ class Preprocessing:
         stack = []
         user_turn = False
 
-        id_fist_system = next((i for x, i in zip(acts_list, range(0,len(acts_list)))
-                                if (x.startswith(Preprocessing.system_del, 0))), None)
+        id_fist_system = next((i for x, i in zip(acts_list, range(0, len(acts_list)))
+                               if (x.startswith(Preprocessing.system_del, 0))), None)
         if id_fist_system == None:
             return []
 
@@ -37,7 +37,7 @@ class Preprocessing:
             user_match = line.startswith(Preprocessing.user_del, 0)
             system_match = line.startswith(Preprocessing.system_del, 0)
 
-            #print "/", line, "/"
+            # print "/", line, "/"
             if user_match:
                 line = line[6:]
             elif system_match:
@@ -47,11 +47,11 @@ class Preprocessing:
             if user_match or system_match:
                 # build stack
                 if ((user_match and user_turn) or
-                   (system_match and not user_turn)):
+                        (system_match and not user_turn)):
                     stack.append(line)
                 # process stack and start building a new one
                 elif ((system_match and user_turn) or
-                    (user_match and not user_turn)):
+                          (user_match and not user_turn)):
                     if (user_turn):
                         dialogue.append(user_method(stack))
                     else:
@@ -59,7 +59,7 @@ class Preprocessing:
                     stack = [line]
                     user_turn = not user_turn
             else:
-                raise Exception("Incorrect input format on line:|"+line+"|")
+                raise Exception("Incorrect input format on line:|" + line + "|")
 
         if len(stack) >= 1 and user_turn:
             dialogue.append(user_method(stack))
@@ -77,13 +77,13 @@ class Preprocessing:
         :return:
         """
         if len(stack) >= 1:
-            return(stack[-1])
+            return (stack[-1])
         else:
             raise Exception("Incorrect input format")
 
     # @staticmethod
     # def create_act_from_stack_concat_da(stack):
-    #     """
+    # """
     #     Constructs dialogue act from more consecutive user or system acts.
     #     Concatenates unique not empty acts from the stack of dialogue acts.
     #
@@ -155,19 +155,29 @@ class Preprocessing:
 
     @staticmethod
     def shorten_connection_info(da):
-        #todo not implemented yet :-O
-        pass
+        new_da = DialogueAct()
+
+        for dai in da.dais:
+            if dai.dat == 'apology':
+                return da
+            elif (dai.dat == 'inform' and
+                          dai.name == 'vehicle'):
+                new_da.append(Preprocessing.connection_info_da)
+                return new_da
+            else:
+                new_da.append(dai)
+        return new_da
 
     @staticmethod
     def add_end_da(dialogue):
         if len(dialogue) % 2 == 0:
             return dialogue[-1].append(DialogueActItem(Preprocessing.end_of_dialogue))
         else:
-            return dialogue.append(DialogueAct(Preprocessing.end_of_dialogue+'()'))
+            return dialogue.append(DialogueAct(Preprocessing.end_of_dialogue + '()'))
 
     @staticmethod
     def add_end_string(dialogue):
         if len(dialogue) % 2 == 0:
-            return dialogue[-1]+'&'+Preprocessing.end_of_dialogue+'()'
+            return dialogue[-1] + '&' + Preprocessing.end_of_dialogue + '()'
         else:
-            return dialogue.append(Preprocessing.end_of_dialogue+'()')
+            return dialogue.append(Preprocessing.end_of_dialogue + '()')

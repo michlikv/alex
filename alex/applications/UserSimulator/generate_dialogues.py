@@ -8,12 +8,12 @@ import autopath
 import argparse
 
 from alex.components.slu.da import DialogueAct, DialogueActNBList
-from alex.components.slu.exceptions import DialogueActException, DialogueActItemException
 from alex.components.dm.common import dm_factory, get_dm_type
 from alex.utils.config import Config
 
 from Simulators import constantSimulator, simpleNgramSimulator, NgramSimulatorFiltered
 from Generators.randomGenerator import RandomGenerator
+from StateTracking import Tracker
 
 
 
@@ -29,9 +29,10 @@ class Generator:
         self.cfg = cfg
         dm_type = get_dm_type(cfg)
         self.dm = dm_factory(dm_type, cfg)
+        self.tracker = Tracker.Tracker(cfg)
 
         self.simulator = None
-        #TODO config user simulators somehow (?factory?)
+        #TODO config user simulators from config :-O
         self.bigram_filtered_init(cfg)
         #self.bigram_init(cfg)
         RandomGenerator()
@@ -70,6 +71,10 @@ class Generator:
             #    self.dm.log_state()
                 system_da = self.dm.da_out()
                 self.output_da(system_da)
+
+                #state tracker usage
+                self.tracker.update_state(user_nblist, system_da)
+                self.tracker.log_state()
 
 #               generate User dialogue act
             #    self.cfg['Logging']['session_logger'].turn("user")
@@ -114,17 +119,17 @@ if __name__ == '__main__':
     #########################################################################
     cfg['Logging']['system_logger'].info("User Simulator\n" + "=" * 120)
 
-    # cfg['Logging']['system_logger'].session_start("localhost")
-    # cfg['Logging']['system_logger'].session_system_log('config = ' + unicode(cfg))
-    #
-    # cfg['Logging']['session_logger'].session_start(cfg['Logging']['system_logger'].get_session_dir_name())
-    # cfg['Logging']['session_logger'].config('config = ' + unicode(cfg))
-    # cfg['Logging']['session_logger'].header(cfg['Logging']["system_name"], cfg['Logging']["version"])
-    # cfg['Logging']['session_logger'].input_source("dialogue acts")
+    cfg['Logging']['system_logger'].session_start("localhost")
+    cfg['Logging']['system_logger'].session_system_log('config = ' + unicode(cfg))
+
+    cfg['Logging']['session_logger'].session_start(cfg['Logging']['system_logger'].get_session_dir_name())
+    cfg['Logging']['session_logger'].config('config = ' + unicode(cfg))
+    cfg['Logging']['session_logger'].header(cfg['Logging']["system_name"], cfg['Logging']["version"])
+    cfg['Logging']['session_logger'].input_source("dialogue acts")
 
     generator = Generator(cfg)
     num_iter = args.num
-    num_iter = 3
+
     #todo for nejaky nastaveny pocet rozhovoru - zatim z comandliny
     for i in range(0,num_iter):
         generator.run()

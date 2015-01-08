@@ -10,12 +10,12 @@ class TrainedStructure(object):
 
     __metaclass__ = abc.ABCMeta
 
-    @property
-    def structure(self):
+    @abc.abstractmethod
+    def get_possible_reactions(self, hist):
         raise NotImplementedError
 
-    @property
-    def structure_unigrams(self):
+    @abc.abstractmethod
+    def get_possible_unigrams(self):
         raise NotImplementedError
 
     @abc.abstractmethod
