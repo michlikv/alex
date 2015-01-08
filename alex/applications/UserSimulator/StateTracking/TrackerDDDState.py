@@ -58,20 +58,33 @@ class DDDSTracker(DialogueState):
         s = []
         s.append("D3State - Dialogue state content:")
         s.append("")
-        s.append("{slot:20} = {value}".format(slot="last_system_da", value=unicode(self.last_system_da)))
+        s.append("{slot:20} = {value}".format(slot="ludait", value=unicode(self.ludait)))
+        s.append("{slot:20} = {value}".format(slot="lsdait", value=unicode(self.lsdait)))
 
         #todo "and not sl.startswith('lta_')"
 
+        s.append("USER SLOTS:")
         #printing slot values
         s.extend(DDDSTracker.slots_dict_to_string(self.slots))
-        s.append("Confirm history slots:")
         s.extend(DDDSTracker.slots_dict_to_string(self.user_confirm_history_slots))
-        s.append("Request history slots:")
         s.extend(DDDSTracker.slots_dict_to_string(self.user_request_history_slots))
-        s.append("Select history slots:")
         s.extend(DDDSTracker.slots_dict_to_string(self.user_select_history_slots))
         s.append("")
-        #todo nevypisuju ty co nejsou instance D3DiscreteValue
+
+        s.append("SYSTEM SLOTS:")
+        #printing slot values
+        s.append("Requested slots:")
+        s.extend(DDDSTracker.slots_dict_to_string(self.system_request_history_slots))
+        s.append("Select slots:")
+        s.extend(DDDSTracker.slots_dict_to_string(self.system_select_history_slots))
+        s.append("Confirmed slots:")
+        s.extend(DDDSTracker.slots_dict_to_string(self.system_confirm_history_slots))
+        s.append("Informed slots:")
+        s.extend(DDDSTracker.slots_dict_to_string(self.system_informed_slots))
+        s.append("")
+
+
+
 
         return '\n'.join(s)
 
