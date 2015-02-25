@@ -28,10 +28,13 @@ class SimpleNgramSimulator(Simulator):
         for file in list_of_files:
             print "processing file", file
             try:
-                dialogue = Preprocessing.prepare_conversations(FileReader.read_file(file),
-                                                               Preprocessing.create_act_from_stack_use_last,
-                                                               Preprocessing.create_act_from_stack_use_last)
-                Preprocessing.add_end_string(dialogue)
+                # read file to list
+                dialogue = FileReader.read_file(file)
+                if dialogue:
+                    dialogue = Preprocessing.prepare_conversations(dialogue,
+                                                                   Preprocessing.create_act_from_stack_use_last,
+                                                                   Preprocessing.create_act_from_stack_use_last)
+                    Preprocessing.add_end_string(dialogue)
             except:
                 self.cfg['Logging']['system_logger'].info('Error: '+file)
             self.simulator.train_counts(dialogue)

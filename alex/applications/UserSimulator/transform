@@ -1,0 +1,2 @@
+#! /bin/sh
+./transform-data.py -c ptics.cfg  ptics_hdc_slu.cfg google.cfg -f data-lists/list-02-asr-transcribed.txt -t /home/vendulka/nmgr/DIPLOMKA/DATA/03-asr-trans-slu-transformed/

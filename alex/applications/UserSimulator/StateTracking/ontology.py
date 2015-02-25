@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 from __future__ import unicode_literals
-from database import database
+# from database import database
 import codecs
 import os
 from alex.utils.config import online_update, to_project_path
@@ -381,23 +381,38 @@ def add_slot_values_from_database(slot, category, exceptions=set()):
     for value in database.get(category, tuple()):
         if value not in exceptions:
             ontology['slots'][slot].add(value)
-
-add_slot_values_from_database('stop', 'stop')
-add_slot_values_from_database('from_stop', 'stop')
-add_slot_values_from_database('to_stop', 'stop')
-add_slot_values_from_database('via_stop', 'stop')
-add_slot_values_from_database('city', 'city')
-add_slot_values_from_database('from_city', 'city')
-add_slot_values_from_database('to_city', 'city')
-add_slot_values_from_database('via_city', 'city')
-add_slot_values_from_database('in_city', 'city')
-add_slot_values_from_database('departure_time', 'time', exceptions=set(['now']))
-add_slot_values_from_database('departure_time_rel', 'time')
-add_slot_values_from_database('arrival_time', 'time', exceptions=set(['now']))
-add_slot_values_from_database('arrival_time_rel', 'time')
-add_slot_values_from_database('time', 'time', exceptions=set(['now']))
-add_slot_values_from_database('time_rel', 'time')
-add_slot_values_from_database('date_rel', 'date_rel')
+    pass
+# add_slot_values_from_database('stop', 'stop')
+# add_slot_values_from_database('from_stop', 'stop')
+# add_slot_values_from_database('to_stop', 'stop')
+# add_slot_values_from_database('via_stop', 'stop')
+# add_slot_values_from_database('city', 'city')
+# add_slot_values_from_database('from_city', 'city')
+# add_slot_values_from_database('to_city', 'city')
+# add_slot_values_from_database('via_city', 'city')
+# add_slot_values_from_database('in_city', 'city')
+# add_slot_values_from_database('departure_time', 'time', exceptions=set(['now']))
+# add_slot_values_from_database('departure_time_rel', 'time')
+# add_slot_values_from_database('arrival_time', 'time', exceptions=set(['now']))
+# add_slot_values_from_database('arrival_time_rel', 'time')
+# add_slot_values_from_database('time', 'time', exceptions=set(['now']))
+# add_slot_values_from_database('time_rel', 'time')
+# add_slot_values_from_database('date_rel', 'date_rel')add_slot_values_from_database('stop', 'stop')
+# add_slot_values_from_database('from_stop', 'stop')
+# add_slot_values_from_database('to_stop', 'stop')
+# add_slot_values_from_database('via_stop', 'stop')
+# add_slot_values_from_database('city', 'city')
+# add_slot_values_from_database('from_city', 'city')
+# add_slot_values_from_database('to_city', 'city')
+# add_slot_values_from_database('via_city', 'city')
+# add_slot_values_from_database('in_city', 'city')
+# add_slot_values_from_database('departure_time', 'time', exceptions=set(['now']))
+# add_slot_values_from_database('departure_time_rel', 'time')
+# add_slot_values_from_database('arrival_time', 'time', exceptions=set(['now']))
+# add_slot_values_from_database('arrival_time_rel', 'time')
+# add_slot_values_from_database('time', 'time', exceptions=set(['now']))
+# add_slot_values_from_database('time_rel', 'time')
+# add_slot_values_from_database('date_rel', 'date_rel')
 
 
 def load_compatible_values(fname, slot1, slot2):

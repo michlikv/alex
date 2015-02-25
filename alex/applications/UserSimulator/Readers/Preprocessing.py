@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # encoding: utf8
-
 from __future__ import unicode_literals
+import autopath
 from alex.components.asr.utterance import Utterance
 from alex.components.slu.da import DialogueAct, DialogueActItem
 from compiler.ast import flatten

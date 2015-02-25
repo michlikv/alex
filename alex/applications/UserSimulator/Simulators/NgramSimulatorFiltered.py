@@ -31,26 +31,27 @@ class NgramSimulatorFilterSlots(Simulator):
             try:
                 # read file to list
                 dialogue = FileReader.read_file(f)
-                # create alternating user and system turns
-                dialogue = Preprocessing.prepare_conversations(dialogue,
-                                                               Preprocessing.create_act_from_stack_use_last,
-                                                               Preprocessing.create_act_from_stack_use_last)
+                if dialogue:
+                    # create alternating user and system turns
+                    dialogue = Preprocessing.prepare_conversations(dialogue,
+                                                                   Preprocessing.create_act_from_stack_use_last,
+                                                                   Preprocessing.create_act_from_stack_use_last)
 
-                #dialogue = Preprocessing.convert_string_to_dialogue_acts("")
-                dialogue = [DialogueAct(d) for d in dialogue]
+                    #dialogue = Preprocessing.convert_string_to_dialogue_acts("")
+                    dialogue = [DialogueAct(d) for d in dialogue]
 
-                Preprocessing.add_end_da(dialogue)
-                # save slot values
-                slot_values = Preprocessing.get_slot_names_plus_values_from_dialogue(dialogue)
-                # remove slot values
-                Preprocessing.remove_slot_values_from_dialogue(dialogue)
+                    Preprocessing.add_end_da(dialogue)
+                    # save slot values
+                    slot_values = Preprocessing.get_slot_names_plus_values_from_dialogue(dialogue)
+                    # remove slot values
+                    Preprocessing.remove_slot_values_from_dialogue(dialogue)
 
-                dialogue = [Preprocessing.shorten_connection_info(a) for a in dialogue]
+                    dialogue = [Preprocessing.shorten_connection_info(a) for a in dialogue]
 
-                self.simulator.train_counts(dialogue, DialogueAct)
+                    self.simulator.train_counts(dialogue, DialogueAct)
 
-                self.slotvals.train_counts(slot_values, unicode)
-                # self.simulator.print_table_bigrams()
+                    self.slotvals.train_counts(slot_values, unicode)
+                    # self.simulator.print_table_bigrams()
             except:
                 self.cfg['Logging']['system_logger'].info('Error: '+f)
 

@@ -19,23 +19,26 @@ class DDDSTracker(DialogueState):
     def __init__(self, cfg, ontology):
         super(DDDSTracker, self).__init__(cfg, ontology)
 
-        self.slots = defaultdict(D3DiscreteValue)
-
+        self.user_slots = defaultdict(D3DiscreteValue)
         # structures for remembering user dialogue acts
-        # rh_ prefix
+        # urh_ prefix
         self.user_request_history_slots = defaultdict(D3DiscreteValue)
-        # ch_ prefix
+        # uch_ prefix
         self.user_confirm_history_slots = defaultdict(D3DiscreteValue)
-        # sh_ prefix
+        # ush_ prefix
         self.user_select_history_slots = defaultdict(D3DiscreteValue)
 
+
+        self.system_slots = defaultdict(D3DiscreteValue)
         # structures for remembering system dialogue acts
+        # srh_ prefix
         self.system_request_history_slots = defaultdict(D3DiscreteValue)
-        # ch_ prefix
+        # sch_ prefix
         self.system_confirm_history_slots = defaultdict(D3DiscreteValue)
-        # sh_ prefix
+        # ssh_ prefix
         self.system_select_history_slots = defaultdict(D3DiscreteValue)
         # what system informed about
+        # sih_ prefix
         self.system_informed_slots = defaultdict(D3DiscreteValue)
 
         self.last_system_da = DialogueAct("silence()")
@@ -43,6 +46,15 @@ class DDDSTracker(DialogueState):
         self.lsdait = D3DiscreteValue()
         self.ludait = D3DiscreteValue()
 
+        self.all_lists = [self.user_slots,
+                          self.user_request_history_slots,
+                          self.user_confirm_history_slots,
+                          self.user_select_history_slots,
+                          self.system_slots,
+                          self.system_request_history_slots,
+                          self.system_confirm_history_slots,
+                          self.system_select_history_slots,
+                          self.system_informed_slots]
 
         self.turns = []
         self.turn_number = 0
@@ -55,43 +67,58 @@ class DDDSTracker(DialogueState):
 
     def __unicode__(self):
         """Get the content of the dialogue state in a human readable form."""
-        s = []
-        s.append("D3State - Dialogue state content:")
-        s.append("")
-        s.append("{slot:20} = {value}".format(slot="ludait", value=unicode(self.ludait)))
-        s.append("{slot:20} = {value}".format(slot="lsdait", value=unicode(self.lsdait)))
+        s = ["D3State - Dialogue state content:", "",
+             "{slot:20} = {value}".format(slot="ludait", value=unicode(self.ludait)),
+             "{slot:20} = {value}".format(slot="lsdait", value=unicode(self.lsdait)), "USER SLOTS:"]
 
         #todo "and not sl.startswith('lta_')"
 
-        s.append("USER SLOTS:")
         #printing slot values
-        s.extend(DDDSTracker.slots_dict_to_string(self.slots))
-        s.extend(DDDSTracker.slots_dict_to_string(self.user_confirm_history_slots))
-        s.extend(DDDSTracker.slots_dict_to_string(self.user_request_history_slots))
-        s.extend(DDDSTracker.slots_dict_to_string(self.user_select_history_slots))
-        s.append("")
+        str_pom = DDDSTracker.slots_dict_to_string(self.user_slots)
+        if len(str_pom) > 0:
+            s.extend(str_pom)
 
+        str_pom = DDDSTracker.slots_dict_to_string(self.user_confirm_history_slots)
+        if len(str_pom) > 0:
+            s.extend(str_pom)
+
+        str_pom = DDDSTracker.slots_dict_to_string(self.user_request_history_slots)
+        if len(str_pom) > 0:
+            s.extend(str_pom)
+
+        str_pom = DDDSTracker.slots_dict_to_string(self.user_select_history_slots)
+        if len(str_pom) > 0:
+            s.extend(str_pom)
+
+        #printing slot values
         s.append("SYSTEM SLOTS:")
-        #printing slot values
-        s.append("Requested slots:")
-        s.extend(DDDSTracker.slots_dict_to_string(self.system_request_history_slots))
-        s.append("Select slots:")
-        s.extend(DDDSTracker.slots_dict_to_string(self.system_select_history_slots))
-        s.append("Confirmed slots:")
-        s.extend(DDDSTracker.slots_dict_to_string(self.system_confirm_history_slots))
-        s.append("Informed slots:")
-        s.extend(DDDSTracker.slots_dict_to_string(self.system_informed_slots))
+        str_pom = DDDSTracker.slots_dict_to_string(self.system_slots)
+        if len(str_pom) > 0:
+            s.extend(str_pom)
+
+        str_pom = DDDSTracker.slots_dict_to_string(self.system_request_history_slots)
+        if len(str_pom) > 0:
+            s.extend(str_pom)
+
+        str_pom = DDDSTracker.slots_dict_to_string(self.system_select_history_slots)
+        if len(str_pom) > 0:
+            s.extend(str_pom)
+
+        str_pom = DDDSTracker.slots_dict_to_string(self.system_confirm_history_slots)
+        if len(str_pom) > 0:
+            s.extend(str_pom)
+
+        str_pom = DDDSTracker.slots_dict_to_string(self.system_informed_slots)
+        if len(str_pom) > 0:
+            s.extend(str_pom)
+
         s.append("")
-
-
-
 
         return '\n'.join(s)
 
     @staticmethod
     def slots_dict_to_string(slots):
         """
-
         :param slots:
         :return:string
         """
@@ -99,22 +126,22 @@ class DDDSTracker(DialogueState):
         for name in slots:
             if isinstance(slots[name], D3DiscreteValue):
                 s.append("{slot:20} = {value}".format(slot=name, value=unicode(slots[name])))
-        return s.append("")
+        return s
 
     def __getitem__(self, key):
-        return self.slots[key]
+        return self.user_slots[key]
 
     def __delitem__(self, key):
-        del self.slots[key]
+        del self.user_slots[key]
 
     def __setitem__(self, key, value):
-        self.slots[key] = value
+        self.user_slots[key] = value
 
     def __contains__(self, key):
-        return key in self.slots
+        return key in self.user_slots
 
     def __iter__(self):
-        return iter(self.slots)
+        return iter(self.user_slots)
 
     def log_state(self):
         """Log the state using the the session logger."""
@@ -127,14 +154,16 @@ class DDDSTracker(DialogueState):
 
         Nevertheless, remember the turn history.
         """
-        self.slots = defaultdict(D3DiscreteValue)
+        self.user_slots = defaultdict(D3DiscreteValue)
         self.user_request_history_slots.clear()
         self.user_confirm_history_slots.clear()
         self.user_select_history_slots.clear()
+        self.system_slots.clear()
         self.system_request_history_slots.clear()
         self.system_confirm_history_slots.clear()
         self.system_select_history_slots.clear()
         self.system_informed_slots.clear()
+
 
     def update(self, user_da, system_da):
         """Dialogue act update.
@@ -155,13 +184,13 @@ class DDDSTracker(DialogueState):
                                                                     "DDDStateTracker.")
 
         if self.debug:
-            self.system_logger.debug('D3State Dialogue Act in:\n%s\n%s' % user_da, system_da)
+            self.system_logger.debug('D3State Dialogue Act in:\n%s\n%s' % (unicode(user_da), unicode(system_da)))
 
         if self.last_system_da != "silence()":
             user_da = self.context_resolution(user_da, self.last_system_da)
 
         if self.debug:
-            self.system_logger.debug('Context Resolution - Dialogue Act:\n%s\n%s' % user_da, system_da)
+            self.system_logger.debug('Context Resolution - Dialogue Act:\n%s\n%s' % (user_da, system_da))
 
         if system_da == "silence()":
             # use the last non-silence dialogue act
@@ -172,7 +201,6 @@ class DDDSTracker(DialogueState):
             # save the last non-silence dialogue act
             self.last_system_da = system_da
 
-        #todo see what is does...?
         # user_da = self.last_talked_about(user_da, system_da)
         #
         # if self.debug:
@@ -183,7 +211,7 @@ class DDDSTracker(DialogueState):
         self.turn_number += 1
 
         # store the result
-        self.turns.append([deepcopy(user_da), deepcopy(system_da), deepcopy(self.slots)])
+        self.turns.append([deepcopy(user_da), deepcopy(system_da), deepcopy(self.all_lists)])
 
         # print the dialogue state if requested
         if self.debug:
@@ -259,7 +287,7 @@ class DDDSTracker(DialogueState):
         # since there is a state update, the silence_time from the last from the user voice activity is 0.0
         # unless this update fired just to inform about the silence time. This case is taken care of later.
         # - this slot is not probabilistic
-        self.slots['silence_time'] = 0.0
+        self.user_slots['silence_time'] = 0.0
 
         # process the user dialogue act
         # processing the low probability DAIs first, emphasize the dialogue acts with high probability
@@ -278,27 +306,34 @@ class DDDSTracker(DialogueState):
 
             if dai.dat == "inform":
                 if dai.name:
-                    self.slots[dai.name].scale(weight)
-                    self.slots[dai.name].add(dai.value, prob)
+                    self.user_slots[dai.name].scale(weight)
+                    self.user_slots[dai.name].add(dai.value, prob)
+                    if "srh_" + dai.name in self.system_request_history_slots:
+                        self.system_request_history_slots["srh_" + dai.name].scale(weight)
+                        self.system_request_history_slots["srh_" + dai.name].add("user-informed", prob)
+                    if "sch_" + dai.name in self.system_confirm_history_slots:
+                         self.system_confirm_history_slots["sch_" + dai.name].scale(weight)
+                         self.system_confirm_history_slots["sch_" + dai.name].add("user-informed", prob)
+
             elif dai.dat == "deny":
                 # handle true and false values because we know their opposite values
                 if dai.value == "true" and self.ontology.slot_is_binary(dai.name):
-                    self.slots[dai.name].scale(weight)
-                    self.slots[dai.name].add('false', prob)
+                    self.user_slots[dai.name].scale(weight)
+                    self.user_slots[dai.name].add('false', prob)
                 elif dai.value == "false" and self.ontology.slot_is_binary(dai.name):
-                    self.slots[dai.name].scale(weight)
-                    self.slots[dai.name].add('true', prob)
+                    self.user_slots[dai.name].scale(weight)
+                    self.user_slots[dai.name].add('true', prob)
                 else:
-                    self.slots[dai.name].distribute(dai.value, prob)
+                    self.user_slots[dai.name].distribute(dai.value, prob)
             elif dai.dat == "request":
-                self.user_request_history_slots["rh_" + dai.name].scale(weight)
-                self.user_request_history_slots["rh_" + dai.name].add("user-requested", prob)
+                self.user_request_history_slots["urh_" + dai.name].scale(weight)
+                self.user_request_history_slots["urh_" + dai.name].add("user-requested", prob)
             elif dai.dat == "confirm":
-                self.user_confirm_history_slots["ch_" + dai.name].scale(weight)
-                self.user_confirm_history_slots["ch_" + dai.name].add(dai.value, prob)
+                self.user_confirm_history_slots["uch_" + dai.name].scale(weight)
+                self.user_confirm_history_slots["uch_" + dai.name].add(dai.value, prob)
             elif dai.dat == "select":
-                self.user_select_history_slots["sh_" + dai.name].scale(weight)
-                self.user_select_history_slots["sh_" + dai.name].add(dai.value, prob)
+                self.user_select_history_slots["ush_" + dai.name].scale(weight)
+                self.user_select_history_slots["ush_" + dai.name].add(dai.value, prob)
             elif dai.dat in set(["ack", "apology", "bye", "hangup", "hello", "help", "null", "other",
                              "repeat", "reqalts", "reqmore", "restart", "thankyou"]):
                 self.ludait.scale(weight)
@@ -307,37 +342,44 @@ class DDDSTracker(DialogueState):
                 self.ludait.scale(weight)
                 self.ludait.add(dai.dat, prob)
                 if dai.name == "time":
-                    self.slots['silence_time'] = float(dai.value)
+                    self.user_slots['silence_time'] = float(dai.value)
 
+        weight = 0.0;
         #system dialogue act in this case is a reaction to a previous user act!
         if isinstance(system_da, DialogueAct):
-            #todo inform a select jsou zatim splachovaci?
-            self.system_informed_slots.clear()
-            self.system_select_history_slots.clear()
-            #todo affirm a deny a negate...??? NENI MOC CASTY.
+            # self.system_request_history_slots.clear()
+            #todo affirm a deny a negate...???
 
             for dai in system_da:
+
+                if dai.name and dai.value:
+                    self.system_slots[dai.name].scale(weight)
+                    self.system_slots[dai.name].add(dai.value, prob)
+
                 if dai.dat == "inform":
                     # set that the system already informed about the slot
-                    self.user_request_history_slots["rh_" + dai.name].set({"system-informed": 1.0, })
-                    self.user_confirm_history_slots["ch_" + dai.name].set({"system-informed": 1.0, })
-                    self.user_select_history_slots["sh_" + dai.name].set({"system-informed": 1.0, })
+                    self.user_request_history_slots["urh_" + dai.name].set({"system-informed": 1.0, })
+                    self.user_confirm_history_slots["uch_" + dai.name].set({"system-informed": 1.0, })
+                    self.user_select_history_slots["ush_" + dai.name].set({"system-informed": 1.0, })
                     if dai.value:
-                        self.system_informed_slots[dai.name].add(dai.value, 1.0)
+                        self.system_informed_slots["sih_" + dai.name].add(dai.value, 1.0)
 
                 if dai.dat == "iconfirm" or dai.dat == "confirm":
                     # set that the system already informed about the slot
-                    self.user_confirm_history_slots["rh_" + dai.name].set({"system-informed": 1.0, })
-                    self.user_confirm_history_slots["ch_" + dai.name].set({"system-informed": 1.0, })
-                    self.user_confirm_history_slots["sh_" + dai.name].set({"system-informed": 1.0, })
+                    self.user_request_history_slots["urh_" + dai.name].set({"system-informed": 1.0, })
+                    self.user_confirm_history_slots["uch_" + dai.name].set({"system-informed": 1.0, })
+                    self.user_select_history_slots["ush_" + dai.name].set({"system-informed": 1.0, })
                     if dai.value:
-                        self.system_confirm_history_slots[dai.name].add(dai.value, 1.0)
+                        self.system_confirm_history_slots["sch_" + dai.name].scale(weight)
+                        self.system_confirm_history_slots["sch_" + dai.name].add(dai.value, 1.0)
 
                 if dai.dat == "select":
-                    self.system_select_history_slots[dai.name].add(dai.value, prob)
+                    self.system_select_history_slots["ssh_" + dai.name].scale(weight)
+                    self.system_select_history_slots["ssh_" + dai.name].add(dai.value, 1.0)
 
                 if dai.dat == "request":
-                    self.system_request_history_slots[dai.name].add(dai.value, prob)
+                    self.system_request_history_slots["srh_" + dai.name].scale(weight)
+                    self.system_request_history_slots["srh_" + dai.name].add('system-requested', 1.0)
 
                 elif dai.dat in set(["silence", "apology", "bye", "hangup", "hello", "help", "null", "other",
                              "irepeat", "notunderstood", "reqmore", "restart", "help", ]):
@@ -348,15 +390,13 @@ class DDDSTracker(DialogueState):
         requested_slots = {}
 
         for slot in self.user_request_history_slots:
-            if isinstance(self.user_request_history_slots[slot], D3DiscreteValue) and slot.startswith("rh_"):
-                #todo myslim ze me bude zajimat but vsechno a nebo spis to co mi system jeste nepotvrdil
-                # neznam strukturu...
+            if isinstance(self.user_request_history_slots[slot], D3DiscreteValue) and slot.startswith("urh_"):
 
-                #if self.slots[slot]["user-requested"] > req_prob:
-                if slot[3:] in self.slots:
-                    requested_slots[slot[3:]] = self.slots[slot[3:]]
-                else:
-                    requested_slots[slot[3:]] = "none"
+                if self.user_slots[slot]["user-requested"] > req_prob:
+                    if slot[3:] in self.user_slots:
+                        requested_slots[slot[3:]] = self.user_slots[slot[3:]]
+                    else:
+                        requested_slots[slot[3:]] = "none"
 
         return requested_slots
 
@@ -365,11 +405,10 @@ class DDDSTracker(DialogueState):
         confirmed_slots = {}
 
         for slot in self.user_confirm_history_slots:
-            if isinstance(self.slots[slot], D3DiscreteValue) and slot.startswith("ch_"):
-                #prob, value = self.slots[slot].mph()
-                #if value not in ['none', 'system-informed', None] and prob > conf_prob:
-                #todo nevim co budu potrebovat v tomhle :-O
-                confirmed_slots[slot[3:]] = self.slots[slot[3:]]
+            if isinstance(self.user_slots[slot], D3DiscreteValue) and slot.startswith("uch_"):
+                prob, value = self.user_slots[slot].mph()
+                if value not in ['none', 'system-informed', None] and prob > conf_prob:
+                    confirmed_slots[slot[3:]] = self.user_slots[slot[3:]]
 
         return confirmed_slots
 
@@ -387,19 +426,18 @@ class DDDSTracker(DialogueState):
         Because the system informed about the food type and stored "system-informed", then
         we will not notice that we confirmed a different food type.
         """
-        #todo nevim k cemu to je takze nvm co to ma delat :]
         noninformed_slots = {}
 
-        for slot in self.slots:
-            if not isinstance(self.slots[slot], D3DiscreteValue):
+        for slot in self.user_slots:
+            if not isinstance(self.user_slots[slot], D3DiscreteValue):
                 continue
 
             # test whether the slot is not currently requested
             if "rh_" + slot not in self.user_request_history_slots or self.user_request_history_slots["rh_" + slot]["none"] > 0.999:
-                prob, value = self.slots[slot].mph()
+                prob, value = self.user_slots[slot].mph()
                 # test that the non informed value is an interesting value
                 if value not in ['none', None] and prob > noninf_prob:
-                    noninformed_slots[slot] = self.slots[slot]
+                    noninformed_slots[slot] = self.user_slots[slot]
 
         return noninformed_slots
 
@@ -408,13 +446,13 @@ class DDDSTracker(DialogueState):
         """
         accepted_slots = {}
 
-        for slot in self.slots:
-            if not isinstance(self.slots[slot], D3DiscreteValue):
+        for slot in self.user_slots:
+            if not isinstance(self.user_slots[slot], D3DiscreteValue):
                 continue
 
-            prob, value = self.slots[slot].mph()
+            prob, value = self.user_slots[slot].mph()
             if value not in ['none', 'system-informed', None] and prob >= acc_prob:
-                accepted_slots[slot] = self.slots[slot]
+                accepted_slots[slot] = self.user_slots[slot]
 
         return accepted_slots
 
@@ -424,13 +462,13 @@ class DDDSTracker(DialogueState):
         """
         tobe_confirmed_slots = {}
 
-        for slot in self.slots:
-            if not isinstance(self.slots[slot], D3DiscreteValue):
+        for slot in self.user_slots:
+            if not isinstance(self.user_slots[slot], D3DiscreteValue):
                 continue
 
-            prob, value = self.slots[slot].mph()
+            prob, value = self.user_slots[slot].mph()
             if value not in ['none', 'system-informed', None] and min_prob <= prob and prob < max_prob:
-                tobe_confirmed_slots[slot] = self.slots[slot]
+                tobe_confirmed_slots[slot] = self.user_slots[slot]
 
         return tobe_confirmed_slots
 
@@ -439,20 +477,20 @@ class DDDSTracker(DialogueState):
         """
         tobe_selected_slots = {}
 
-        for slot in self.slots:
-            if not isinstance(self.slots[slot], D3DiscreteValue):
+        for slot in self.user_slots:
+            if not isinstance(self.user_slots[slot], D3DiscreteValue):
                 continue
 
-            (prob1, value1), (prob2, value2) = self.slots[slot].tmphs()
+            (prob1, value1), (prob2, value2) = self.user_slots[slot].tmphs()
 
             if value1 not in ['none', 'system-informed', None] and prob1 > sel_prob and \
                 value2 not in ['none', 'system-informed', None] and prob2 > sel_prob:
-                tobe_selected_slots[slot] = self.slots[slot]
+                tobe_selected_slots[slot] = self.user_slots[slot]
 
         return tobe_selected_slots
 
     def get_changed_slots(self, cha_prob):
-        """Returns all slots that has changed from the previous turn. Because the change is determined by change in
+        """Returns all slots that have changed from the previous turn. Because the change is determined by change in
         probability for a particular value, there may be very small changes. Therefore, this will only report changes
         for values with a probability larger than the given threshold.
 
@@ -463,8 +501,8 @@ class DDDSTracker(DialogueState):
 
         # compare the accepted slots from the previous and the current turn
         if len(self.turns) >= 2:
-            cur_slots = self.turns[-1][2]
-            prev_slots = self.turns[-2][2]
+            cur_slots = self.turns[-1][2][0]
+            prev_slots = self.turns[-2][2][0]
 
             for slot in cur_slots:
                 if not isinstance(cur_slots[slot], D3DiscreteValue):
@@ -495,19 +533,20 @@ class DDDSTracker(DialogueState):
         :rtype: Boolean
         """
         if len(self.turns) >= 2:
-            cur_slots = self.turns[-1][2]
-            prev_slots = self.turns[-2][2]
+            cur_all_slots = self.turns[-1][2]
+            prev_all_slots = self.turns[-2][2]
 
-            for slot in cur_slots:
-                if not isinstance(cur_slots[slot], D3DiscreteValue):
-                    continue
-
-                for value, cur_prob in cur_slots[slot].items():
-                    if value in ['none', 'system-informed', None]:
+            for cur_slots,prev_slots in zip(cur_all_slots, prev_all_slots):
+                for slot in cur_slots:
+                    if not isinstance(cur_slots[slot], D3DiscreteValue):
                         continue
-                    prev_prob = prev_slots[slot].get(value, 0.0)
-                    if abs(cur_prob - prev_prob) > cha_prob:
-                        return True
+
+                    for value, cur_prob in cur_slots[slot].items():
+                        if value in ['none', 'system-informed', None]:
+                            continue
+                        prev_prob = prev_slots[slot].get(value, 0.0)
+                        if abs(cur_prob - prev_prob) > cha_prob:
+                            return True
         elif len(self.turns) == 1:
             slots = self.turns[-1][2]
             for slot in slots:
