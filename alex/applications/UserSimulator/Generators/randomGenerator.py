@@ -4,7 +4,7 @@ import random
 class RandomGenerator:
 
     def __init__(self):
-        #random.seed(19910604)
+        random.seed(19910604)
         pass
 
     @staticmethod
@@ -27,6 +27,27 @@ class RandomGenerator:
         chosen = next((a for a, s in zip(responses, run_sums) if (s-r) > 0), None)
 
         return chosen
+
+    @staticmethod
+    def generate_random_response_uniform(responses):
+        """
+        Choose one of the responses uniformly
+        :param responses: list of generated objects
+        :return: random response from list of responses
+        """
+        # random number [0,total)
+        return responses[random.randrange(0, len(responses))]
+
+    @staticmethod
+    def is_generated(probability):
+        """
+        Decide true or false with given probability
+        :param:probability: float [0,1]
+        :return: true if generated
+        """
+        # random float number [0,total)
+        gen = random.uniform(0, 1)
+        return probability >= gen
 
     @staticmethod
     def _running_sum(a):

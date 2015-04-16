@@ -28,7 +28,6 @@ class DDDSTracker(DialogueState):
         # ush_ prefix
         self.user_select_history_slots = defaultdict(D3DiscreteValue)
 
-
         self.system_slots = defaultdict(D3DiscreteValue)
         # structures for remembering system dialogue acts
         # srh_ prefix
@@ -433,7 +432,7 @@ class DDDSTracker(DialogueState):
                 continue
 
             # test whether the slot is not currently requested
-            if "rh_" + slot not in self.user_request_history_slots or self.user_request_history_slots["rh_" + slot]["none"] > 0.999:
+            if "urh_" + slot not in self.user_request_history_slots or self.user_request_history_slots["urh_" + slot]["none"] > 0.999:
                 prob, value = self.user_slots[slot].mph()
                 # test that the non informed value is an interesting value
                 if value not in ['none', None] and prob > noninf_prob:
@@ -559,3 +558,69 @@ class DDDSTracker(DialogueState):
                     return True
             pass
         return False
+
+
+    def _hash_values(self, hash):
+        result = defaultdict(str)
+        # slots with prefix "uch_"
+        # has either slot value or "system-informed".
+        for slot, value in hash.iteritems():
+            prob, val = hash[slot].mph()
+            if val in ["system-informed", "user-informed"]:
+                result[slot] = val
+            elif slot[4:] in self.user_slots and val == self.user_slots[slot[4:]].mph()[1]:
+                result[slot] = "user-value"
+            elif slot[4:] in self.system_slots and val == self.system_slots[slot[4:]].mph()[1]:
+                result[slot] = "system-value"
+            else:
+                result[slot] = "other"
+        return result
+
+    def get_value_said(self, slot):
+        if slot in self.user_slots:
+            return self.user_slots[slot].mph()[1]
+        else:
+            return None
+
+    def get_featurized_hash(self):
+        result = defaultdict(str)
+
+        #add ludait, lsdait
+        prob, val = self.ludait.mph()
+        result["ludait"] = val
+        prob, val = self.lsdait.mph()
+        result["lsdait"] = val
+
+        #add slots used by user with its value
+        for slot, value in self.user_slots.iteritems():
+            result["u"+slot] = "user-value"
+
+        #todo gextract&compare only the most probable slot value...
+        #add slots used by system with respect to user values
+        for slot, value in self.system_slots.iteritems():
+            if slot in self.user_slots and self.user_slots[slot].mph()[1] == self.system_slots[slot].mph()[1]:
+                result["s"+slot] = "user-value"
+            else:
+                result["s"+slot] = "system-value"
+
+        # slots with prefix "urh_"
+        # has only "user-requested" and "system-informed" values.
+        for slot, value in self.user_request_history_slots.iteritems():
+            prob, val = self.user_request_history_slots[slot].mph()
+            result[slot] = val
+
+        result.update(self._hash_values(self.user_confirm_history_slots))
+        result.update(self._hash_values(self.user_select_history_slots))
+
+        # slots with prefix "srh_"
+        # has only "system-requested" and "user-informed" values.
+        for slot, value in self.system_request_history_slots.iteritems():
+            prob, val = self.system_request_history_slots[slot].mph()
+            result[slot] = val
+
+        result.update(self._hash_values(self.system_confirm_history_slots))
+        result.update(self._hash_values(self.system_select_history_slots))
+        result.update(self._hash_values(self.system_informed_slots))
+
+        return result
+

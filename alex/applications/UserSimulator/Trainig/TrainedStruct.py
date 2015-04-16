@@ -3,11 +3,13 @@
 
 from __future__ import unicode_literals
 import abc
-import pickle
+try:
+    import cPickle as pickle
+except:
+    import pickle
 
 class TrainedStructure(object):
     """Abstract class for user simulator."""
-
     __metaclass__ = abc.ABCMeta
 
     @abc.abstractmethod
@@ -20,19 +22,21 @@ class TrainedStructure(object):
 
     @abc.abstractmethod
     def train_counts(self, acts_list):
-        """Train structure from list of dialogue acts where
-        user act and system act ...
-        cond->it->prob"""
-        #todo prubezne se stridaji.
+        """Train structure from list of consecutive user and system dialogue acts"""
         raise NotImplementedError()
 
     def save(self, filename):
-        """Returns the pickle serialization of the object"""
-        return pickle.dump(self, open(filename, 'wb'))
+        """Saves object to file"""
+        out = open(filename, 'wb')
+        pickle.dump(self, out)
+        out.close()
 
     @staticmethod
     def load(filename):
         """Returns the instance of TrainedStructure from the pickle string"""
-        return pickle.load(open(filename, 'rb'))
+        input = open(filename, 'rb')
+        obj = pickle.load(input)
+        input.close()
+        return obj
 
 

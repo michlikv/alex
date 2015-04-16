@@ -11,7 +11,7 @@ from alex.components.slu.da import DialogueAct, DialogueActNBList
 from alex.components.dm.common import dm_factory, get_dm_type
 from alex.utils.config import Config
 
-from Simulators import constantSimulator, simpleNgramSimulator, NgramSimulatorFiltered
+from Simulators import constantSimulator, simpleNgramSimulator, NgramSimulatorFiltered, MLsimulator
 from Generators.randomGenerator import RandomGenerator
 from StateTracking import Tracker
 
@@ -29,11 +29,10 @@ class Generator:
         self.cfg = cfg
         dm_type = get_dm_type(cfg)
         self.dm = dm_factory(dm_type, cfg)
-        self.tracker = Tracker.Tracker(cfg)
 
         self.simulator = None
         #TODO config user simulators from config :-O
-        self.bigram_filtered_init(cfg)
+        self.ml_init(cfg)
         #self.bigram_init(cfg)
         RandomGenerator()
 
@@ -48,19 +47,23 @@ class Generator:
         self.simulator = NgramSimulatorFiltered.NgramSimulatorFilterSlots(cfg)
         self.simulator.train_simulator('data-lists/03-slu-500.txt')
 
+    def ml_init(self, cfg):
+        #simulator = MLsimulator.MLsimulator(self.cfg)
+        #simulator.train_simulator(self.cfg['UserSimulation']['files']['source'], False)
+        self.simulator = MLsimulator.MLsimulator.load(cfg)
+
     def output_da(self, da):
         """Prints the system dialogue act to the output."""
-        print "System DA:", unicode(da)
-        print
+        cfg['Logging']['system_logger'].info("System DA:"+unicode(da))
 
     def output_nblist(self, nblist):
         """Prints the DA n-best list to the output."""
-        print "User DA:", unicode(nblist.get_best_da())
-        print
+        cfg['Logging']['system_logger'].info("User DA:"+unicode(nblist.get_best_da()))
 
     def run(self):
         """Controls the dialogue manager and user simulator."""
         try:
+            self.simulator.new_dialogue()
             self.dm.new_dialogue()
             user_nblist = DialogueActNBList().add(1.0, DialogueAct())
 
@@ -68,20 +71,14 @@ class Generator:
             #    self.cfg['Logging']['session_logger'].turn("system")
 
 #               generate DM dialogue act
-            #    self.dm.log_state()
+                self.dm.log_state()
                 system_da = self.dm.da_out()
                 self.output_da(system_da)
 
-                #state tracker usage
-                self.tracker.update_state(user_nblist, system_da)
-                self.tracker.log_state()
-
 #               generate User dialogue act
             #    self.cfg['Logging']['session_logger'].turn("user")
-                #TODO log state
                 user_nblist = self.simulator.generate_response(system_da)
                 self.output_nblist(user_nblist)
-                #TODO log nb list?
 
 #               pass it to the dialogue manager
                 self.dm.da_in(user_nblist)

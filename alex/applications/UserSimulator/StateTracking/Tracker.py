@@ -22,6 +22,12 @@ class Tracker:
         self.dialogue_state.log_state()
         # print unicode(self.dialogue_state)
 
+    def get_featurized_hash(self):
+        return self.dialogue_state.get_featurized_hash()
+
+    def get_value_said(self, slot):
+        return  self.dialogue_state.get_value_said(slot)
+
     #
     # def update_state(self, user_da, system_da):
     #     cn = DialogueActConfusionNetwork().make_from_da(system_da)

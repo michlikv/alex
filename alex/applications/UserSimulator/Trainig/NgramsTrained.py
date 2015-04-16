@@ -7,6 +7,10 @@ from collections import Counter, defaultdict
 from itertools import tee, islice
 from TrainedStruct import TrainedStructure
 from alex.components.slu.da import DialogueAct
+try:
+    import cPickle as pickle
+except:
+    import pickle
 
 
 class NgramsTrained(TrainedStructure):
@@ -14,17 +18,14 @@ class NgramsTrained(TrainedStructure):
     def __init__(self, n):
         #TrainedStructure.__init__(self)
         self._structure_unigrams = defaultdict(int)
-        self._structure = defaultdict(self.defdictint)
+        self._structure = defaultdict(lambda: defaultdict(int))
         self._ngram_n = n
         self._prefix = ['<s>']*(n-2) if (n-2) > 0 else []
         self._pp = pprint.PrettyPrinter(indent=4)
 
-    def defdictint(self):
-        return defaultdict(int)
-
     def train_counts(self, acts_list, class_type):
         bigr = list(NgramsTrained._ngrams(self._prefix+acts_list, self._ngram_n))
-        bigr = Counter([gram for gram, pos in zip(bigr, range(0, len(bigr))) if pos % 2 == 0])
+        bigr = Counter([gram for pos, gram in enumerate(bigr) if pos % 2 == 0])
         # print bigr
         # ('cond')->'it'->count
         for ngram, count in bigr.iteritems():
@@ -70,3 +71,28 @@ class NgramsTrained(TrainedStructure):
                 tlst = b
             else:
                 break
+
+    def save(self, filename):
+        """Saves object to file"""
+        self._structure = dict(self._structure)
+        out = open(filename, 'wb')
+        pickle.dump(self._structure_unigrams, out)
+        pickle.dump(self._structure, out)
+        pickle.dump(self._ngram_n, out)
+        pickle.dump(self._prefix, out)
+        out.close()
+
+    @staticmethod
+    def load(filename):
+        """Returns the instance of TrainedStructure from the pickle string"""
+        input = open(filename, 'rb')
+        obj = NgramsTrained(2)
+        obj._structure_unigrams = pickle.load(input)
+        structure = pickle.load(input)
+        obj._ngram_n = pickle.load(input)
+        obj._prefix = pickle.load(input)
+        input.close()
+        obj._structure = defaultdict(lambda: defaultdict(int))
+        obj._structure.update(structure)
+
+        return obj
