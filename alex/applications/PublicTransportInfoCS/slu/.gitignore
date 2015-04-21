@@ -6,9 +6,12 @@ uniq.trn
 uniq.trn.sem
 uniq.trn.hdc.sem
 uniq.trn.tmp*
-uniq.trn.sem.tmp*
+*.sem.tmp*
 *.model
 *.model.all
 *.sem.out
 *.sem.out.score
-
+old_experiments
+dawn*
+dainn*
+dailogreg*

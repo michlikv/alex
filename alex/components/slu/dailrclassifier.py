@@ -526,8 +526,9 @@ class DAILogRegClassifier(SLUInterface):
             print('%40s = %d' % (k, self.classifiers[k]))
 
     def prune_features(self, clser, min_pos_feature_count, min_neg_feature_count, verbose=False):
-        print 'Pruning the features'
-        print
+        if verbose:
+            print 'Pruning the features'
+            print
 
         features_counts = defaultdict(int)
         for feat in self.classifiers_features[clser]:
@@ -677,7 +678,7 @@ class DAILogRegClassifier(SLUInterface):
                 print "Training classifier: ", clser, ' #', n+1 , '/', len(self.classifiers)
                 print "  Matrix:            ", (len(self.classifiers_outputs[clser]), len(self.classifiers_features_list[clser]))
 
-            classifier_input = np.zeros((training_data_size, len(self.classifiers_features_list[clser])))
+            classifier_input = np.zeros((len(self.classifiers_outputs[clser]), len(self.classifiers_features_list[clser])))
             for i, feat in enumerate(self.classifiers_features[clser]):
                 classifier_input[i] = feat.get_feature_vector(self.classifiers_features_mapping[clser])
 
@@ -690,6 +691,7 @@ class DAILogRegClassifier(SLUInterface):
                 mean_accuracy = lr.score(classifier_input, self.classifiers_outputs[clser])
                 print "  Prediction mean accuracy on the training data: %6.2f" % (100.0 * mean_accuracy, )
                 print "  Size of the params:", lr.coef_.shape
+
 
     def save_model(self, file_name, gzip=None):
         data = [self.classifiers_features_list, self.classifiers_features_mapping, self.trained_classifiers,
@@ -763,7 +765,7 @@ class DAILogRegClassifier(SLUInterface):
                             print '  Probability:', p
 
                         dai = DialogueActItem(self.parsed_classifiers[clser].dat, self.parsed_classifiers[clser].name, v)
-                        da_confnet.add(p[0][1], dai)
+                        da_confnet.add_merge(p[0][1], dai, combine='max')
             else:
                 # process concrete classifiers
                 classifiers_features = self.get_features(utterance, (None, None, None), utterance_fvcs)
@@ -779,9 +781,10 @@ class DAILogRegClassifier(SLUInterface):
                 if verbose:
                     print '  Probability:', p
 
-                da_confnet.add(p[0][1], self.parsed_classifiers[clser])
+                dai = self.parsed_classifiers[clser]
+                da_confnet.add_merge(p[0][1], dai, combine='max')
 
-        da_confnet.sort().merge().prune()
+        da_confnet.sort().prune()
 
         return da_confnet
 
