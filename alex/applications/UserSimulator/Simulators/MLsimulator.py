@@ -58,6 +58,7 @@ class MLsimulator(Simulator):
                     Preprocessing.create_act_from_stack_use_last)
 
                 Preprocessing.add_end_string(dialogue)
+                Preprocessing.clear_numerics(dialogue)
                 dialogue = ['silence()'] + dialogue
 
                 self.cfg['Logging']['system_logger'].info(dialogue)
@@ -81,6 +82,21 @@ class MLsimulator(Simulator):
 
                     #except:
                     #   self.cfg['Logging']['system_logger'].info('Error: '+file)
+
+        # add negative used features
+        #1. find all names
+        names_used = defaultdict(str)
+        for elem in feature_vects:
+            for name, value in elem.iteritems():
+                if name.endswith("_in"):
+                    names_used[name] = 1
+
+        #2. add all negatives
+        for elem in feature_vects:
+            for name, value in names_used.iteritems():
+                if name not in elem:
+                    elem[name]="not_used"
+
         # training and testing data are 90% and 10% of vectors
         cutindex =int(len(feature_vects)*0.1)
         vectors_train = feature_vects[:-cutindex]
@@ -89,7 +105,7 @@ class MLsimulator(Simulator):
         responses_test = responses[-cutindex:]
 
         # transform vectors - fit by training data only!
-        self.vectorizer = DictVectorizer(sparse=False)
+        self.vectorizer = DictVectorizer(sparse=True)
         vectors_train = self.vectorizer.fit_transform(vectors_train)
         vectors_test = self.vectorizer.transform(vectors_test)
 
@@ -122,9 +138,9 @@ class MLsimulator(Simulator):
             sizes.append(name + ' ' + str(sum(cl)))
         self._print_lines_to_file('data/classes-sizes.txt', sizes)
 
-        self.cfg['Logging']['system_logger'].info("training data: " + str(len(vectors_train)) + " - " + str(
+        self.cfg['Logging']['system_logger'].info("training data: " + str(vectors_train.get_shape()) + " - " + str(
             len(responses_train))+";")
-        self.cfg['Logging']['system_logger'].info("testing data: " + str(len(vectors_test)) + " - " + str(
+        self.cfg['Logging']['system_logger'].info("testing data: " + str(vectors_test.get_shape()) + " - " + str(
             len(responses_test))+".")
 
         return vectors_train, classes_train, vectors_test, classes_test
@@ -135,7 +151,8 @@ class MLsimulator(Simulator):
         for i, response in enumerate(responses):
             Preprocessing.remove_slot_values(response)
             for dai in response.dais:
-                classes.setdefault(unicode(dai), numpy.zeros(size, dtype=int))[i] = 1
+                if dai.dat != 'null':
+                    classes.setdefault(unicode(dai), numpy.zeros(size, dtype=int))[i] = 1
         return classes
 
     def train_simulator(self, filename_filelist, create_vectors=False):
@@ -184,8 +201,15 @@ class MLsimulator(Simulator):
 
         thresholds = numpy.linspace(0.0, 1.0, 11)
         self.make_stats(self.vectors_train, self.classes_train, prefixfile+"-train-", thresholds)
-        thresholds = numpy.linspace(0.1, 0.3, 11)
-        self.make_stats(self.vectors_train, self.classes_train, prefixfile+"-0203-", thresholds)
+        #thresholds = numpy.linspace(0.1, 0.3, 11)
+        #self.make_stats(self.vectors_train, self.classes_train, prefixfile+"-0203-", thresholds)
+
+        tops = []
+        for name, classifier in self.classifiers.iteritems():
+            tops.append(self._get_top10(self.vectorizer, classifier, name))
+        self._print_lines_to_file('data/top-weight-features.txt', tops)
+        print "."
+        #todo debug proc to pada!
        # self.make_stats(self.vectors_test, self.classes_test, prefixfile+"-test-")
 
     def make_stats(self, vectors, classes, prefixfile, thresholds):
@@ -210,6 +234,17 @@ class MLsimulator(Simulator):
         pl.ylabel('Probability')
         pl.legend(handles=[p, r, n])
         pl.savefig("data/"+prefixfile+'-prec-rec.png')
+
+    def _get_top10(self, vectorizer, clf, class_label, n=10):
+        """Prints features with the highest coefficient values, per class"""
+        feature_names = vectorizer.get_feature_names()
+        coefs_with_fns = sorted(zip(clf.coef_[0], feature_names))
+        top = zip(coefs_with_fns[:n], coefs_with_fns[:-(n + 1):-1])
+        s = class_label+"\n"
+        for (coef_1, fn_1), (coef_2, fn_2) in top:
+            s += "\t%.4f\t%-15s\t\t%.4f\t%-15s \n" % (coef_1, fn_1, coef_2, fn_2)
+            #return "%s: %s" % ('class_label', " ".join(feature_names[j] for j in top10))
+        return s
 
     def count_precision_recall_null(self, vectors, classes, thresholds):
         size = len(thresholds)
@@ -239,7 +274,7 @@ class MLsimulator(Simulator):
         #print false_pos
         #print total_pos
         #print none_gen
-        return true_pos/(true_pos+false_pos), true_pos/total_pos, 1 - none_gen/len(vectors)
+        return true_pos/(true_pos+false_pos), true_pos/total_pos, 1 - none_gen/vectors.get_shape()[1]
 
 
 
@@ -349,10 +384,16 @@ class MLsimulator(Simulator):
         if response is not None:
             for dai in response.dais:
                 if dai.value:
-                    from_state = self.tracker.get_value_said(dai.name)
+                    # deny what system said, confirm and inform what user previously said.
+                    # todo je mozne pracovat s nespolupracujicim uzivatelem
+                    if dai.dat == "deny":
+                        from_state = self.tracker.get_value_said_system(dai.name)
+                    else:
+                        from_state = self.tracker.get_value_said_user(dai.name)
+
                     if from_state is not None:
                         selected = from_state
-                    # todo asi nejaky chytrejsi vyber, rozhodne odladit objekty! (bude tady padat)
+
                     else: #generate uniform
                         possible_values = self.slotvals.get_possible_reactions((dai.name,))
                         if not possible_values:

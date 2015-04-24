@@ -256,7 +256,7 @@ class DDDSTracker(DialogueState):
                     if new_user_dai:
                         new_user_da.add(prob, new_user_dai)
 
-        old_user_da.extend(new_user_da)
+        old_user_da.merge(new_user_da, combine='max')
 
         return old_user_da
 
@@ -351,7 +351,7 @@ class DDDSTracker(DialogueState):
 
             for dai in system_da:
 
-                if dai.name and dai.value:
+                if dai.name and dai.value and dai.dat != 'help':
                     self.system_slots[dai.name].scale(weight)
                     self.system_slots[dai.name].add(dai.value, prob)
 
@@ -380,8 +380,13 @@ class DDDSTracker(DialogueState):
                     self.system_request_history_slots["srh_" + dai.name].scale(weight)
                     self.system_request_history_slots["srh_" + dai.name].add('system-requested', 1.0)
 
-                elif dai.dat in set(["silence", "apology", "bye", "hangup", "hello", "help", "null", "other",
-                             "irepeat", "notunderstood", "reqmore", "restart", "help", ]):
+                if dai.dat == "help":
+                    if dai.name and dai.value:
+                        self.system_slots["help_"+dai.name].scale(weight)
+                        self.system_slots["help_"+dai.name].add(dai.value, prob)
+
+                elif dai.dat in set(["silence", "apology", "bye", "hangup", "hello", "null", "other",
+                             "irepeat", "notunderstood", "reqmore", "restart" ]):
                     self.lsdait.set({dai.dat: prob, })
 
     def get_slots_being_requested(self, req_prob=0.8):
@@ -565,6 +570,7 @@ class DDDSTracker(DialogueState):
         # slots with prefix "uch_"
         # has either slot value or "system-informed".
         for slot, value in hash.iteritems():
+            result[slot+"_in"] = "used"
             prob, val = hash[slot].mph()
             if val in ["system-informed", "user-informed"]:
                 result[slot] = val
@@ -576,14 +582,22 @@ class DDDSTracker(DialogueState):
                 result[slot] = "other"
         return result
 
-    def get_value_said(self, slot):
+    def get_value_said_user(self, slot):
         if slot in self.user_slots:
             return self.user_slots[slot].mph()[1]
         else:
             return None
 
+    def get_value_said_system(self, slot):
+        if slot in self.system_slots:
+            return self.system_slots[slot].mph()[1]
+        else:
+            return None
+
     def get_featurized_hash(self):
         result = defaultdict(str)
+
+       # result["num_turns"] = self.turn_number
 
         #add ludait, lsdait
         prob, val = self.ludait.mph()
@@ -593,19 +607,40 @@ class DDDSTracker(DialogueState):
 
         #add slots used by user with its value
         for slot, value in self.user_slots.iteritems():
-            result["u"+slot] = "user-value"
+            result["u"+slot+"_in"] = "used"
+            if slot == "task":
+                result["u"+slot] = value.mph()[1]
+            elif slot in self.system_slots:
+                if self.system_slots[slot].mph()[1] == value.mph()[1]:
+                    result[slot] = "same-value"
+                else:
+                    result[slot] = "diff-value"
+            else:
+                result[slot] = "user-only"
 
-        #todo gextract&compare only the most probable slot value...
+        #for slot, value in self.user_slots.iteritems():
+        #    result["u"+slot] = "user-value"
+
         #add slots used by system with respect to user values
         for slot, value in self.system_slots.iteritems():
-            if slot in self.user_slots and self.user_slots[slot].mph()[1] == self.system_slots[slot].mph()[1]:
-                result["s"+slot] = "user-value"
-            else:
-                result["s"+slot] = "system-value"
+            result["s"+slot+"_in"] = "used"
+            #todo look into ontology! - true false slots
+            if slot.startswith("help"):
+                if value.mph()[1] is not None:
+                    result[slot] = value.mph()[1]
+                else:
+                    result[slot] = "no-val"
+            elif slot not in result:
+                result[slot] = "system-only"
+#            if slot in self.user_slots and self.user_slots[slot].mph()[1] == self.system_slots[slot].mph()[1]:
+#                result["s"+slot] = "user-value"
+#            else:
+#                result["s"+slot] = "system-value"
 
         # slots with prefix "urh_"
         # has only "user-requested" and "system-informed" values.
         for slot, value in self.user_request_history_slots.iteritems():
+            result[slot+"_in"] = "used"
             prob, val = self.user_request_history_slots[slot].mph()
             result[slot] = val
 
@@ -615,6 +650,7 @@ class DDDSTracker(DialogueState):
         # slots with prefix "srh_"
         # has only "system-requested" and "user-informed" values.
         for slot, value in self.system_request_history_slots.iteritems():
+            result[slot+"_in"] = "used"
             prob, val = self.system_request_history_slots[slot].mph()
             result[slot] = val
 

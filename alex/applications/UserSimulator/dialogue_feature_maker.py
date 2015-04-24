@@ -24,9 +24,9 @@ class Featurize:
         self.cfg = cfg
 
     def run(self):
-        #simulator = MLsimulator.MLsimulator(self.cfg)
-        #simulator.train_simulator(self.cfg['UserSimulation']['files']['source'], False)
-        simulator = MLsimulator.MLsimulator.load(self.cfg)
+        simulator = MLsimulator.MLsimulator(self.cfg)
+        simulator.train_simulator(self.cfg['UserSimulation']['files']['source'], True)
+        #simulator = MLsimulator.MLsimulator.load(self.cfg)
         simulator.make_stats_all("2015-04-15")
         #simulator.save()
 
@@ -44,7 +44,7 @@ class build_state_stats:
                     self.states[unicode(dai)] += 1
 
     def print_sorted(self):
-        for n, count in sorted(self.states.iteritems(), key=lambda (k,v): v,reverse=True):
+        for n, count in sorted(self.states.iteritems(), key=lambda (k, v): v, reverse=True):
             print(n, count)
 
 

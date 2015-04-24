@@ -169,6 +169,13 @@ class Preprocessing:
         return new_da
 
     @staticmethod
+    def clear_numerics(dialogue):
+        for i, a in enumerate(dialogue):
+            if a.endswith("1.000 "):
+                dialogue[i] = a[6:]
+
+
+    @staticmethod
     def add_end_da(dialogue):
         if len(dialogue) % 2 == 0:
             return dialogue[-1].append(DialogueActItem(Preprocessing.end_of_dialogue))
