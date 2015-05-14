@@ -4,6 +4,8 @@
 from __future__ import unicode_literals
 from collections import defaultdict
 from copy import deepcopy
+from Readers.Preprocessing import Preprocessing
+from twisted.web._stan import slot
 
 from alex.components.dm.base import DiscreteValue, DialogueState
 from alex.components.dm.dddstate import D3DiscreteValue
@@ -41,6 +43,9 @@ class DDDSTracker(DialogueState):
         self.system_informed_slots = defaultdict(D3DiscreteValue)
 
         self.last_system_da = DialogueAct("silence()")
+
+        self.connection_info_said = False;
+
         # last system/user dialogue act item type
         self.lsdait = D3DiscreteValue()
         self.ludait = D3DiscreteValue()
@@ -68,7 +73,9 @@ class DDDSTracker(DialogueState):
         """Get the content of the dialogue state in a human readable form."""
         s = ["D3State - Dialogue state content:", "",
              "{slot:20} = {value}".format(slot="ludait", value=unicode(self.ludait)),
-             "{slot:20} = {value}".format(slot="lsdait", value=unicode(self.lsdait)), "USER SLOTS:"]
+             "{slot:20} = {value}".format(slot="lsdait", value=unicode(self.lsdait)),
+             "{slot:20} = {value}".format(slot="con_info", value=unicode(self.connection_info_said)),
+             "USER SLOTS:"]
 
         #todo "and not sl.startswith('lta_')"
 
@@ -162,6 +169,8 @@ class DDDSTracker(DialogueState):
         self.system_confirm_history_slots.clear()
         self.system_select_history_slots.clear()
         self.system_informed_slots.clear()
+        self.last_system_da = DialogueAct("silence()")
+        self.connection_info_said = False
 
 
     def update(self, user_da, system_da):
@@ -181,6 +190,10 @@ class DDDSTracker(DialogueState):
             raise DeterministicDiscriminativeDialogueStateException("Unsupported input for the dialogue manager. "
                                                                     "User dialogue act is of incorrect type in "
                                                                     "DDDStateTracker.")
+
+        shortened = Preprocessing.shorten_connection_info(system_da)
+        if unicode(shortened) != unicode(system_da):
+            self.connection_info_said = True
 
         if self.debug:
             self.system_logger.debug('D3State Dialogue Act in:\n%s\n%s' % (unicode(user_da), unicode(system_da)))
@@ -594,10 +607,69 @@ class DDDSTracker(DialogueState):
         else:
             return None
 
+    def get_compatible_values(self, dai, da):
+        slot_name = dai.name
+
+        # prepare known values
+        set_values = defaultdict(str)
+        if ("from_city" in self.user_slots): set_values["from_city"] = self.user_slots["from_city"].mph()[1]
+        if ("to_city" in self.user_slots): set_values["to_city"] = self.user_slots["to_city"].mph()[1]
+        if ("from_stop" in self.user_slots): set_values["from_stop"] = self.user_slots["from_stop"].mph()[1]
+        if ("to_stop" in self.user_slots): set_values["to_stop"] = self.user_slots["to_stop"].mph()[1]
+        for dai_set in da:
+            if (dai_set is not None and dai_set.name is not None and
+                ("city" in dai_set.name or "stop" in dai_set.name) and
+                (dai_set.value and dai_set.value != "&")):
+                set_values[dai_set.name] = dai_set.value
+
+        # get compatible values
+        if "city" in slot_name or "stop" in slot_name:
+            if slot_name == "city" or slot_name == "stop":
+                dai_system = None
+                for dai in self.last_system_da:
+                    if dai.name is not None and slot_name in dai.name:
+                        dai_system = dai
+                        break
+
+                if dai_system is not None and dai_system.name in self.user_slots:
+                    return [self.user_slots[dai_system.name].mph()[1]]
+                else:
+                    return None
+
+            if "via" in slot_name:
+                if ( "from_city" in set_values and "to_city" in set_values and
+                   set_values["from_city"] == set_values["to_city"]):
+                    return [set_values["from_city"]]
+                else: #todo odvozene typy ze zastavek -- problem, muzou byt ve vice mestech, mesto ale jeste neni urceno
+                    return None
+
+            elif "in" in slot_name:
+                if "to_city" in set_values: # use city you travel to
+                    return [set_values["to_city"]]
+                else:
+                    return None
+
+            elif "stop" in slot_name:
+                if slot_name[:-4] + "city" in set_values:
+                    return list(self.ontology.get_compatible_vals("city_stop", set_values[slot_name[:-4] + "city"]))
+                else:
+                    return None
+            elif "city" in slot_name:
+                if slot_name[:-4] + "stop" in set_values:
+                    return list(self.ontology.get_compatible_vals("stop_city", set_values[slot_name[:-4] + "stop"]))
+                else:
+                    return None
+            else:
+                return None
+        else: return None
+
+
     def get_featurized_hash(self):
         result = defaultdict(str)
 
        # result["num_turns"] = self.turn_number
+        if self.connection_info_said:
+            result["connection_info_said"] = "true"
 
         #add ludait, lsdait
         prob, val = self.ludait.mph()
@@ -618,13 +690,15 @@ class DDDSTracker(DialogueState):
             else:
                 result[slot] = "user-only"
 
+            if slot in self.ontology['fixed_values']:
+                result["u"+slot+"_val"] = value.mph()[1]
+
         #for slot, value in self.user_slots.iteritems():
         #    result["u"+slot] = "user-value"
 
         #add slots used by system with respect to user values
         for slot, value in self.system_slots.iteritems():
             result["s"+slot+"_in"] = "used"
-            #todo look into ontology! - true false slots
             if slot.startswith("help"):
                 if value.mph()[1] is not None:
                     result[slot] = value.mph()[1]
@@ -632,6 +706,9 @@ class DDDSTracker(DialogueState):
                     result[slot] = "no-val"
             elif slot not in result:
                 result[slot] = "system-only"
+
+            if slot in self.ontology['fixed_values']:
+                result["s"+slot+"_val"] = value.mph()[1]
 #            if slot in self.user_slots and self.user_slots[slot].mph()[1] == self.system_slots[slot].mph()[1]:
 #                result["s"+slot] = "user-value"
 #            else:

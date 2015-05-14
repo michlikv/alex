@@ -7,8 +7,10 @@ import random
 import numpy
 import codecs
 import pickle
+import math
 from alex.components.slu.da import DialogueAct, DialogueActNBList, DialogueActItem
 from alex.components.slu.common import slu_factory
+from alex.components.dm import Ontology
 from collections import defaultdict
 import pylab as pl
 
@@ -26,6 +28,7 @@ class MLsimulator(Simulator):
 
     def __init__(self, cfg):
         self.cfg = cfg
+        self.ontology = Ontology(cfg['UserSimulation']['ontology'])
         self.vectorizer = None
         self.classifiers = None
         self.slotvals = NgramsTrained(2)
@@ -70,7 +73,8 @@ class MLsimulator(Simulator):
                 slot_values = Preprocessing.get_slot_names_plus_values_from_dialogue(dialogue)
                 self.slotvals.train_counts(slot_values, unicode)
 
-                self.tracker = Tracker.Tracker(self.cfg)
+                self.tracker.new_dialogue()
+
                 while len(dialogue) > 1:
                     self.tracker.update_state(dialogue[0], dialogue[1])
                     self.tracker.log_state()
@@ -83,22 +87,22 @@ class MLsimulator(Simulator):
                     #except:
                     #   self.cfg['Logging']['system_logger'].info('Error: '+file)
 
-        # add negative used features
-        #1. find all names
-        names_used = defaultdict(str)
-        for elem in feature_vects:
-            for name, value in elem.iteritems():
-                if name.endswith("_in"):
-                    names_used[name] = 1
-
-        #2. add all negatives
-        for elem in feature_vects:
-            for name, value in names_used.iteritems():
-                if name not in elem:
-                    elem[name]="not_used"
+        # # add negative used features
+        # #1. find all names
+        # names_used = defaultdict(str)
+        # for elem in feature_vects:
+        #     for name, value in elem.iteritems():
+        #         if name.endswith("_in"):
+        #             names_used[name] = 1
+        #
+        # #2. add all negatives
+        # for elem in feature_vects:
+        #     for name, value in names_used.iteritems():
+        #         if name not in elem:
+        #             elem[name]="not_used"
 
         # training and testing data are 90% and 10% of vectors
-        cutindex =int(len(feature_vects)*0.1)
+        cutindex = int(len(feature_vects)*0.1)
         vectors_train = feature_vects[:-cutindex]
         vectors_test = feature_vects[-cutindex:]
         responses_train = responses[:-cutindex]
@@ -149,7 +153,7 @@ class MLsimulator(Simulator):
         size = len(responses)
         classes = defaultdict(str)
         for i, response in enumerate(responses):
-            Preprocessing.remove_slot_values(response)
+            Preprocessing.remove_slot_values(response, ['task'])
             for dai in response.dais:
                 if dai.dat != 'null':
                     classes.setdefault(unicode(dai), numpy.zeros(size, dtype=int))[i] = 1
@@ -209,7 +213,6 @@ class MLsimulator(Simulator):
             tops.append(self._get_top10(self.vectorizer, classifier, name))
         self._print_lines_to_file('data/top-weight-features.txt', tops)
         print "."
-        #todo debug proc to pada!
        # self.make_stats(self.vectors_test, self.classes_test, prefixfile+"-test-")
 
     def make_stats(self, vectors, classes, prefixfile, thresholds):
@@ -219,21 +222,51 @@ class MLsimulator(Simulator):
           #  precs.append(precision)
           #  recs.append(recall)
           #  nulls.append(null)
-        precs, recs, nulls = self.count_precision_recall_null(vectors, classes, thresholds)
-        print "Thresholds:", thresholds
-        print "Precisions:", precs
-        print "Recalls:", recs
-        print "Nulls:", nulls
+        factored, mean = self.count_precision_recall_accuracy_null(vectors, classes, thresholds)
+
+        i= 100
+        for name, val in factored.iteritems():
+            self.make_plot_pra(str(i)+prefixfile+name, thresholds, val['precision'], val['recall'], val['accuracy'])
+            i+=1
+        self.make_plot_pran(prefixfile+"means", thresholds, mean['mean_precision'], mean['mean_recall'], mean['mean_accuracy'], mean['nulls'])
+
+
+    def make_plot_pran(self, filename, thresholds, precs, recs, accs, nulls):
+        l = ["\t".join([str(t) for t in thresholds]),
+             "\t".join([str(t) for t in precs]),
+             "\t".join([str(t) for t in recs]),
+             "\t".join([str(t) for t in accs])]
+        self._print_lines_to_file("data/"+filename+".txt", l)
 
         # make a plot
         p, = pl.plot(thresholds, precs, "ro-", label="Precision")
         r, = pl.plot(thresholds, recs, "bs-", label="Recall")
-        n, = pl.plot(thresholds, nulls, "g^-", label="nulls")
+        a, = pl.plot(thresholds, accs, "g^-", label="Accuracy")
+        n, = pl.plot(thresholds, nulls, "k+-", label="Nulls")
         pl.axis([min(thresholds), max(thresholds), 0.0, 1.0])
         pl.xlabel('Thresholds')
-        pl.ylabel('Probability')
-        pl.legend(handles=[p, r, n])
-        pl.savefig("data/"+prefixfile+'-prec-rec.png')
+        pl.ylabel('val')
+        pl.legend(handles=[p, r, a, n])
+        pl.savefig("data/"+filename+".png")
+        pl.close()
+
+    def make_plot_pra(self, filename, thresholds, precs, recs, accs):
+        l = ["\t".join([str(t) for t in thresholds]),
+             "\t".join([str(t) for t in precs]),
+             "\t".join([str(t) for t in recs]),
+             "\t".join([str(t) for t in accs])]
+        self._print_lines_to_file("data/"+filename+".txt", l)
+
+        # make a plot
+        p, = pl.plot(thresholds, precs, "ro-", label="Precision")
+        r, = pl.plot(thresholds, recs, "bs-", label="Recall")
+        a, = pl.plot(thresholds, accs, "g^-", label="Accuracy")
+        pl.axis([min(thresholds), max(thresholds), 0.0, 1.0])
+        pl.xlabel('Thresholds')
+        pl.ylabel('val')
+        pl.legend(handles=[p, r, a])
+        pl.savefig("data/"+filename+".png")
+        pl.close()
 
     def _get_top10(self, vectorizer, clf, class_label, n=10):
         """Prints features with the highest coefficient values, per class"""
@@ -246,11 +279,63 @@ class MLsimulator(Simulator):
             #return "%s: %s" % ('class_label', " ".join(feature_names[j] for j in top10))
         return s
 
-    def count_precision_recall_null(self, vectors, classes, thresholds):
+
+    def count_precision_recall_accuracy_null(self, vectors, classes, thresholds):
+        #counts precision, recall, accuracy by classifiers, adds mean + nulls
+        size = len(thresholds)
+
+        none_gen = numpy.array([0.0]*size)
+
+        clas_stats = defaultdict(lambda: defaultdict(str))
+        clas_result = defaultdict(lambda: defaultdict(str))
+        clas_result_mean = defaultdict(str)
+
+        for i, vector in enumerate(vectors):
+            pom = numpy.array([0]*size)
+            for name, classifier in self.classifiers.iteritems():
+                prob = classifier.predict_proba(vector)[0, 1]
+                probs = [prob]*size
+                probs = numpy.array([0 if p<=t else 1 for p, t in zip(probs, thresholds)])
+                pom += probs
+
+                if classes[name][i] == 1:
+                    clas_stats[name]['true_pos'] = clas_stats[name].get('true_pos', numpy.array([0.0]*size)) + probs
+                    clas_stats[name]['total_pos'] = clas_stats[name].get('total_pos', 0.0) + 1
+                else:
+                    clas_stats[name]['false_pos'] = clas_stats[name].get('false_pos', numpy.array([0.0]*size)) + probs
+                    clas_stats[name]['true_neg'] = clas_stats[name].get('true_neg', numpy.array([0.0]*size)) + numpy.array([0 if p==1 else 1 for p in probs])
+
+            none_gen = [ n + 1 if pm>0 else n for n,pm in zip(none_gen, pom)]
+        none_gen = numpy.array(none_gen)
+
+        for name, h in clas_stats.iteritems():
+
+
+            clas_result[name]['precision'] = clas_stats[name].get('true_pos', numpy.array([0.0]*size))/(clas_stats[name].get('true_pos', numpy.array([0.0]*size))+clas_stats[name].get('false_pos', numpy.array([0.0]*size)))
+            clas_result[name]['precision']= numpy.nan_to_num(clas_result[name]['precision'])
+            clas_result[name]['recall'] = clas_stats[name].get('true_pos', numpy.array([0.0]*size))/clas_stats[name].get('total_pos', 0.0)
+            clas_result[name]['accuracy'] = (clas_stats[name].get('true_pos', numpy.array([0.0]*size))+clas_stats[name].get('true_neg', numpy.array([0.0]*size)))/(vectors.get_shape()[0])
+
+            #if clas_result[name]['precision'] > 0.0:
+            clas_result_mean['mean_precision'] = clas_result_mean.get('mean_precision', numpy.array([0.0]*size)) + clas_result[name]['precision']
+            #if clas_result[name]['recall'] > 0.0:
+            clas_result_mean['mean_recall'] = clas_result_mean.get('mean_recall',numpy.array([0.0]*size)) + clas_result[name]['recall']
+            #if clas_result[name]['accuracy'] > 0.0:
+            clas_result_mean['mean_accuracy'] = clas_result_mean.get('mean_accuracy', numpy.array([0.0]*size)) + clas_result[name]['accuracy']
+
+        clas_result_mean['mean_precision'] = clas_result_mean['mean_precision']/len(classes)
+        clas_result_mean['mean_recall'] = clas_result_mean['mean_recall']/len(classes)
+        clas_result_mean['mean_accuracy'] = clas_result_mean['mean_accuracy']/len(classes)
+        clas_result_mean['nulls'] = 1 - none_gen/vectors.get_shape()[0]
+        return clas_result, clas_result_mean
+
+    def count_precision_recall_null_bag_of(self, vectors, classes, thresholds):
+        # counts precision, recall, accuracy as "bag of" representation of zeros and ones
         size = len(thresholds)
         none_gen = numpy.array([0.0]*size)
         true_pos = numpy.array([0.0]*size)
         false_pos = numpy.array([0.0]*size)
+        true_neg = numpy.array([0.0]*size)
         total_pos = 0.0
         for i, vector in enumerate(vectors):
             pom = numpy.array([0]*size)
@@ -265,18 +350,12 @@ class MLsimulator(Simulator):
                     true_pos += probs
                 else:
                     false_pos += probs
+                    true_neg += numpy.array([0 if p==1 else 1 for p in probs])
             none_gen = [ n + 1 if pm>0 else n for n,pm in zip(none_gen, pom)]
-            #if not hasone: none_gen += 1
-
         none_gen = numpy.array(none_gen)
-        #return precision, recall, nulls
-        #print true_pos
-        #print false_pos
-        #print total_pos
-        #print none_gen
-        return true_pos/(true_pos+false_pos), true_pos/total_pos, 1 - none_gen/vectors.get_shape()[1]
 
-
+        #return precision, recall, accuracy, nulls
+        return true_pos/(true_pos+false_pos), true_pos/total_pos, (true_pos+true_neg)/(vectors.get_shape()[0]*len(classes)), 1 - none_gen/vectors.get_shape()[0]
 
     @staticmethod
     def load_obj(filename):
@@ -288,7 +367,7 @@ class MLsimulator(Simulator):
     @staticmethod
     def load(cfg):
         obj = MLsimulator(cfg)
-        if 'vectorizer' in cfg['UserSimulation']['files']:
+        if 'vectorizer' in obj.cfg['UserSimulation']['files']:
             obj.vectorizer = obj.load_obj(cfg['UserSimulation']['files']['vectorizer'])
         if 'slotvals' in cfg['UserSimulation']['files']:
             obj.slotvals = NgramsTrained.load(cfg['UserSimulation']['files']['slotvals'])
@@ -383,7 +462,7 @@ class MLsimulator(Simulator):
 
         if response is not None:
             for dai in response.dais:
-                if dai.value:
+                if dai.value and dai.value == "&":
                     # deny what system said, confirm and inform what user previously said.
                     # todo je mozne pracovat s nespolupracujicim uzivatelem
                     if dai.dat == "deny":
@@ -391,14 +470,19 @@ class MLsimulator(Simulator):
                     else:
                         from_state = self.tracker.get_value_said_user(dai.name)
 
-                    if from_state is not None:
+                    if from_state is not None and (dai.name in self.ontology['fixed_goal'] or dai.dat == "deny"):
                         selected = from_state
-
-                    else: #generate uniform
-                        possible_values = self.slotvals.get_possible_reactions((dai.name,))
-                        if not possible_values:
-                            possible_values = self.slotvals.get_possible_unigrams()
-                        selected = RandomGenerator.generate_random_response_uniform(possible_values[0])
+                    else: #generate uniform from compatible values
+                        possible_values = None
+                        if ("city" in dai.name or "stop" in dai.name) and dai.dat != "deny":
+                            possible_values = self.tracker.get_compatible_values(dai, response)
+                            if possible_values is None or len(possible_values) == 0:
+                                possible_values = None
+                        if possible_values is None:
+                            possible_values, v, s = self.slotvals.get_possible_reactions((dai.name,))
+                            if not possible_values:
+                                possible_values, v, s = self.slotvals.get_possible_unigrams() #todo this should not happen.
+                        selected = RandomGenerator.generate_random_response_uniform(possible_values)
                     dai.value = selected
         else:
             response = DialogueAct('null()')

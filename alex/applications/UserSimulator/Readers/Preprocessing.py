@@ -137,10 +137,11 @@ class Preprocessing:
         return [Preprocessing.remove_slot_values(x) for x in dialogue]
 
     @staticmethod
-    def remove_slot_values(da):
+    def remove_slot_values(da, exclude=None):
         for dai in da.dais:
             if dai.value:
-                dai.value = '&'
+                if exclude is None or dai.name not in exclude:
+                    dai.value = '&'
 
     @staticmethod
     def get_slot_names_plus_values_from_dialogue(dialogue):
@@ -171,7 +172,7 @@ class Preprocessing:
     @staticmethod
     def clear_numerics(dialogue):
         for i, a in enumerate(dialogue):
-            if a.endswith("1.000 "):
+            if a.startswith("1.000 "):
                 dialogue[i] = a[6:]
 
 

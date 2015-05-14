@@ -4,8 +4,10 @@
 from __future__ import unicode_literals
 
 import autopath
-
+import time
+import datetime
 import argparse
+import codecs
 
 from alex.components.slu.da import DialogueAct, DialogueActNBList
 from alex.components.dm.common import dm_factory, get_dm_type
@@ -25,14 +27,29 @@ class Generator:
       It communicates in dialogue acts and produces text logs of the dialogues.
     """
 
+    def append_file(self, filename, lines):
+        """
+        Writes list of lines to utf-8 encoded file.
+        :param filename: name of a file
+        :param lines: lines to write
+        """
+        f = codecs.open(filename, "a", "utf-8")
+        for l in lines:
+            f.write(l)
+            f.write('\n')
+        f.close()
+
+
+
     def __init__(self, cfg):
         self.cfg = cfg
+        self.simulator = None
+        self.ml_init(cfg)
+
         dm_type = get_dm_type(cfg)
         self.dm = dm_factory(dm_type, cfg)
-
-        self.simulator = None
         #TODO config user simulators from config :-O
-        self.ml_init(cfg)
+
         #self.bigram_init(cfg)
         RandomGenerator()
 
@@ -63,6 +80,8 @@ class Generator:
     def run(self):
         """Controls the dialogue manager and user simulator."""
         try:
+            dialogue = []
+
             self.simulator.new_dialogue()
             self.dm.new_dialogue()
             user_nblist = DialogueActNBList().add(1.0, DialogueAct())
@@ -74,14 +93,18 @@ class Generator:
                 self.dm.log_state()
                 system_da = self.dm.da_out()
                 self.output_da(system_da)
+                dialogue.append("System DA:"+unicode(system_da))
 
 #               generate User dialogue act
             #    self.cfg['Logging']['session_logger'].turn("user")
                 user_nblist = self.simulator.generate_response(system_da)
                 self.output_nblist(user_nblist)
+                dialogue.append("User DA:"+unicode(user_nblist.get_best_da()))
 
 #               pass it to the dialogue manager
                 self.dm.da_in(user_nblist)
+            dialogue.append("------------")
+            return dialogue
         except:
             self.cfg['Logging']['system_logger'].exception('Uncaught exception in Generation process.')
             raise
@@ -125,8 +148,12 @@ if __name__ == '__main__':
     cfg['Logging']['session_logger'].input_source("dialogue acts")
 
     generator = Generator(cfg)
-    num_iter = args.num
+    #num_iter = args.num
+    num_iter = 100
 
-    #todo for nejaky nastaveny pocet rozhovoru - zatim z comandliny
-    for i in range(0,num_iter):
-        generator.run()
+    ts = time.time()
+    st = datetime.datetime.fromtimestamp(ts).strftime('%Y-%m-%d %H:%M:%S')
+    #todo for nejaky nastaveny pocet rozhovoru - z comandliny
+    for i in range(0, num_iter):
+        d = generator.run()
+        generator.append_file("call_logs/"+st+"simplified-dialogues", d)

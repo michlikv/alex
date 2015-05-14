@@ -24,6 +24,7 @@ class Featurize:
         self.cfg = cfg
 
     def run(self):
+        simulator = MLsimulator.MLsimulator.load(self.cfg)
         simulator = MLsimulator.MLsimulator(self.cfg)
         simulator.train_simulator(self.cfg['UserSimulation']['files']['source'], True)
         #simulator = MLsimulator.MLsimulator.load(self.cfg)
@@ -76,10 +77,10 @@ if __name__ == '__main__':
     cfg['Logging']['system_logger'].session_start("localhost")
     cfg['Logging']['system_logger'].session_system_log('config = ' + unicode(cfg))
 
-    # cfg['Logging']['session_logger'].session_start(cfg['Logging']['system_logger'].get_session_dir_name())
-    # cfg['Logging']['session_logger'].config('config = ' + unicode(cfg))
-    # cfg['Logging']['session_logger'].header(cfg['Logging']["system_name"], cfg['Logging']["version"])
-    # cfg['Logging']['session_logger'].input_source("dialogue acts")
+    cfg['Logging']['session_logger'].session_start(cfg['Logging']['system_logger'].get_session_dir_name())
+    cfg['Logging']['session_logger'].config('config = ' + unicode(cfg))
+    cfg['Logging']['session_logger'].header(cfg['Logging']["system_name"], cfg['Logging']["version"])
+    cfg['Logging']['session_logger'].input_source("dialogue acts")
 
     tracker = Featurize(cfg)
     tracker.run()
