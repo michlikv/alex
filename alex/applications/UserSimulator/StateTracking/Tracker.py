@@ -26,6 +26,10 @@ class Tracker:
         self.dialogue_state.log_state()
         # print unicode(self.dialogue_state)
 
+    def unicode_state(self):
+        #print unicode(self.dialogue_state)
+        return unicode(self.dialogue_state)
+
     def get_featurized_hash(self):
         return self.dialogue_state.get_featurized_hash()
 

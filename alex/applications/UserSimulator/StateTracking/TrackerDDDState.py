@@ -44,7 +44,8 @@ class DDDSTracker(DialogueState):
 
         self.last_system_da = DialogueAct("silence()")
 
-        self.connection_info_said = False;
+        self.connection_info_said = False
+        self.connection_error = False
 
         # last system/user dialogue act item type
         self.lsdait = D3DiscreteValue()
@@ -75,6 +76,7 @@ class DDDSTracker(DialogueState):
              "{slot:20} = {value}".format(slot="ludait", value=unicode(self.ludait)),
              "{slot:20} = {value}".format(slot="lsdait", value=unicode(self.lsdait)),
              "{slot:20} = {value}".format(slot="con_info", value=unicode(self.connection_info_said)),
+             "{slot:20} = {value}".format(slot="con_error", value=unicode(self.connection_error)),
              "USER SLOTS:"]
 
         #todo "and not sl.startswith('lta_')"
@@ -171,6 +173,7 @@ class DDDSTracker(DialogueState):
         self.system_informed_slots.clear()
         self.last_system_da = DialogueAct("silence()")
         self.connection_info_said = False
+        self.connection_error = False
 
 
     def update(self, user_da, system_da):
@@ -194,6 +197,15 @@ class DDDSTracker(DialogueState):
         shortened = Preprocessing.shorten_connection_info(system_da)
         if unicode(shortened) != unicode(system_da):
             self.connection_info_said = True
+            self.connection_error = False
+
+        for dai in system_da:
+            if dai.dat == "apology":
+                self.connection_error = True
+
+        for dai in system_da:
+            if dai.dat == "restart":
+                self.restart()
 
         if self.debug:
             self.system_logger.debug('D3State Dialogue Act in:\n%s\n%s' % (unicode(user_da), unicode(system_da)))
@@ -626,10 +638,19 @@ class DDDSTracker(DialogueState):
         if "city" in slot_name or "stop" in slot_name:
             if slot_name == "city" or slot_name == "stop":
                 dai_system = None
+
+                # find first request with correct substring
                 for dai in self.last_system_da:
-                    if dai.name is not None and slot_name in dai.name:
+                    if dai.name is not None and slot_name in dai.name and dai.dat == "request":
                         dai_system = dai
                         break
+
+                #if there is no request, try any slot name with substring
+                if dai_system is None:
+                    for dai in self.last_system_da:
+                        if dai.name is not None and slot_name in dai.name:
+                            dai_system = dai
+                            break
 
                 if dai_system is not None and dai_system.name in self.user_slots:
                     return [self.user_slots[dai_system.name].mph()[1]]
@@ -670,6 +691,13 @@ class DDDSTracker(DialogueState):
        # result["num_turns"] = self.turn_number
         if self.connection_info_said:
             result["connection_info_said"] = "true"
+        if self.connection_error:
+            result["connection_info_error"] = "true"
+
+        # add most recent requests
+        for dai in self.last_system_da:
+            if dai is not None and dai.dat == "request" and dai.name:
+                result["lr_"+dai.name] = "recently-requested"
 
         #add ludait, lsdait
         prob, val = self.ludait.mph()

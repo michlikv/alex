@@ -3,6 +3,7 @@
 
 from __future__ import unicode_literals
 from gi.overrides.GLib import MainLoop
+from posixfile import _posixfile_
 import random
 import numpy
 import codecs
@@ -35,6 +36,9 @@ class MLsimulator(Simulator):
         self.luda = DialogueAct('silence()')
         self.tracker = Tracker.Tracker(self.cfg)
         RandomGenerator()
+
+    def get_state(self):
+        return self.tracker
 
     def new_dialogue(self):
         self.luda = DialogueAct('silence()')
@@ -467,6 +471,9 @@ class MLsimulator(Simulator):
                     # todo je mozne pracovat s nespolupracujicim uzivatelem
                     if dai.dat == "deny":
                         from_state = self.tracker.get_value_said_system(dai.name)
+                        # use brand new value for deny if system and user shave value
+                        if from_state == self.tracker.get_value_said_user(dai.name):
+                            from_state = None
                     else:
                         from_state = self.tracker.get_value_said_user(dai.name)
 
@@ -480,6 +487,10 @@ class MLsimulator(Simulator):
                                 possible_values = None
                         if possible_values is None:
                             possible_values, v, s = self.slotvals.get_possible_reactions((dai.name,))
+                            #short hack so it does not fail
+                            if dai.name == "alternative":
+                                possible_values = list(self.ontology['slots']['alternative'])
+                                possible_values=possible_values[:-1]
                             if not possible_values:
                                 possible_values, v, s = self.slotvals.get_possible_unigrams() #todo this should not happen.
                         selected = RandomGenerator.generate_random_response_uniform(possible_values)
