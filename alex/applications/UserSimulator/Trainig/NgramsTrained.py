@@ -16,20 +16,18 @@ except:
 class NgramsTrained(TrainedStructure):
 
     def __init__(self, n):
-        #TrainedStructure.__init__(self)
         self._structure_unigrams = defaultdict(int)
         self._structure = defaultdict(lambda: defaultdict(int))
         self._ngram_n = n
         self._prefix = ['<s>']*(n-2) if (n-2) > 0 else []
         self._pp = pprint.PrettyPrinter(indent=4)
 
-    def train_counts(self, acts_list, class_type):
-        bigr = list(NgramsTrained._ngrams(self._prefix+acts_list, self._ngram_n))
+    def train_counts(self, dialogue):
+        bigr = list(NgramsTrained._ngrams(self._prefix+dialogue, self._ngram_n))
         bigr = Counter([gram for pos, gram in enumerate(bigr) if pos % 2 == 0])
         # print bigr
         # ('cond')->'it'->count
         for ngram, count in bigr.iteritems():
-            # print "|",ngram,"|",count,"|"
             self._structure[ngram[:-1]][ngram[-1]] += count
             self._structure_unigrams[ngram[-1]] += count
 

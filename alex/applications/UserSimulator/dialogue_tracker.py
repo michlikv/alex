@@ -7,24 +7,18 @@ from Readers.Preprocessing import Preprocessing
 import time
 
 import autopath
-
 import argparse
 import pprint
 
-from alex.components.slu.da import DialogueAct, DialogueActNBList, DialogueActConfusionNetwork
-from alex.components.dm.common import dm_factory, get_dm_type
+from alex.components.slu.da import DialogueAct
 from alex.utils.config import Config
-
-from Simulators import constantSimulator, simpleNgramSimulator, NgramSimulatorFiltered
-from Generators.randomGenerator import RandomGenerator
 from StateTracking import Tracker
 
 
-class Tracking_iface:
+class Tracking:
 
     def __init__(self, cfg):
         self.cfg = cfg
-
 
     def output_da(self, str, da):
         """Prints the system dialogue act to the output."""
@@ -44,11 +38,11 @@ class Tracking_iface:
 
         p = pprint.PrettyPrinter(indent=4)
 
-        for file in list_of_files:
-            print "processing file", file
-            self.cfg['Logging']['system_logger'].info("processing file" + file)
+        for file_name in list_of_files:
+            print "processing file", file_name
+            self.cfg['Logging']['system_logger'].info("processing file" + file_name)
 
-            dialogue = FileReader.read_file(file)
+            dialogue = FileReader.read_file(file_name)
             if dialogue:
                 dialogue = Preprocessing.prepare_conversations(dialogue,
                                                                Preprocessing.create_act_from_stack_use_last,
@@ -116,5 +110,5 @@ if __name__ == '__main__':
     cfg['Logging']['session_logger'].header(cfg['Logging']["system_name"], cfg['Logging']["version"])
     cfg['Logging']['session_logger'].input_source("dialogue acts")
 
-    tracker = Tracking_iface(cfg)
+    tracker = Tracking(cfg)
     tracker.run()

@@ -45,6 +45,8 @@ class DDDSTracker(DialogueState):
         self.last_system_da = DialogueAct("silence()")
 
         self.connection_info_said = False
+        self.connection_info_matches = False
+        self.last_connection_alternative = 1
         self.connection_error = False
 
         # last system/user dialogue act item type
@@ -64,7 +66,7 @@ class DDDSTracker(DialogueState):
         self.turns = []
         self.turn_number = 0
 
-        #todo settingy z kategorie USimulate
+        #todo settingy z kategorie USimulate??
         self.debug = cfg['DM']['basic']['debug']
         self.type = cfg['DM']['DeterministicDiscriminativeDialogueState']['type']
         self.session_logger = cfg['Logging']['session_logger']
@@ -77,9 +79,9 @@ class DDDSTracker(DialogueState):
              "{slot:20} = {value}".format(slot="lsdait", value=unicode(self.lsdait)),
              "{slot:20} = {value}".format(slot="con_info", value=unicode(self.connection_info_said)),
              "{slot:20} = {value}".format(slot="con_error", value=unicode(self.connection_error)),
+             "{slot:20} = {value}".format(slot="con_match", value=unicode(self.connection_info_matches)),
+             "{slot:20} = {value}".format(slot="last_alt", value=unicode(self.last_connection_alternative)),
              "USER SLOTS:"]
-
-        #todo "and not sl.startswith('lta_')"
 
         #printing slot values
         str_pom = DDDSTracker.slots_dict_to_string(self.user_slots)
@@ -174,7 +176,8 @@ class DDDSTracker(DialogueState):
         self.last_system_da = DialogueAct("silence()")
         self.connection_info_said = False
         self.connection_error = False
-
+        self.connection_info_matches = False
+        self.last_connection_alternative = 1
 
     def update(self, user_da, system_da):
         """Dialogue act update.
@@ -194,10 +197,7 @@ class DDDSTracker(DialogueState):
                                                                     "User dialogue act is of incorrect type in "
                                                                     "DDDStateTracker.")
 
-        shortened = Preprocessing.shorten_connection_info(system_da)
-        if unicode(shortened) != unicode(system_da):
-            self.connection_info_said = True
-            self.connection_error = False
+        this_system_da = deepcopy(system_da)
 
         for dai in system_da:
             if dai.dat == "apology":
@@ -232,6 +232,15 @@ class DDDSTracker(DialogueState):
 
         # perform the state update
         self.state_update(user_da, system_da)
+
+        # track information about connection info
+        shortened = Preprocessing.shorten_connection_info(this_system_da)
+        if unicode(shortened) != unicode(this_system_da):
+            self.connection_info_said = True
+            self.connection_error = False
+            self.connection_info_matches = self.is_connection_info_consistent(this_system_da)
+
+
         self.turn_number += 1
 
         # store the result
@@ -240,6 +249,88 @@ class DDDSTracker(DialogueState):
         # print the dialogue state if requested
         if self.debug:
             self.system_logger.debug(unicode(self))
+
+    def is_connection_info_consistent(self, da):
+        #todo is connection info ok with user values?
+        has_er = False
+
+        #check alternatives
+        if 'alternative' in self.user_slots:
+            said_alternative = 1
+            for dai in da:
+                # if da is inform(alternative="some positive number") and user specified alternative
+                if dai.dat == 'inform' and dai.name and dai.name == 'alternative' and dai.value and dai.value.isdigit():
+                    said_alternative = int(dai.value)
+
+            wanted_num = 0
+            user_val = self.user_slots['alternative'].mph()[1]
+            if user_val.isdigit():
+                wanted_num = int(user_val)
+            elif user_val == 'next':
+                wanted_num = self.last_connection_alternative +1
+            elif user_val == 'prev' and self.last_connection_alternative >1:
+                wanted_num = self.last_connection_alternative -1
+
+            if user_val == 'last' and said_alternative == 1:
+                has_er = True # It is not known how many alternatives were found
+            #if values mismatch
+            if wanted_num != 0 and wanted_num != said_alternative:
+                has_er = True
+
+            self.last_connection_alternative = said_alternative
+
+        #check vehicle
+        if 'vehicle' in self.user_slots:
+            wanted_value = self.user_slots['vehicle'].mph()[1]
+            contains_value = False
+            for dai in da:
+                if dai.dat == 'inform' and dai.name and dai.name == 'vehicle' and dai.value and  wanted_value.lower() in dai.value.lower():
+                    contains_value = True
+                    break
+            # if there is not a correct vehicle even once, the connection is incorrect
+            if not contains_value:
+                has_er = True
+
+        #check from and to stop
+        said_from_stop = None
+        walkto_from = False
+        said_to_stop = None
+        walkto_to = False
+
+        for dai in da:
+            if dai.value and dai.name and dai.name == 'exit_at':
+               said_to_stop = dai.value
+            elif dai.value and dai.name and dai.name == 'walk_to' and said_from_stop is None:
+                walkto_from = True
+                said_from_stop = dai.value
+            elif dai.value and dai.name and dai.name == 'enter_at' and said_from_stop is None:
+                said_from_stop = dai.value
+            elif dai.value and dai.name and dai.name == 'walk_to' and dai.value == 'FINAL_DEST':
+                walkto_to = True
+
+        from_stop = self.user_slots['from_stop'].mph()[1] if 'from_stop' in self.user_slots else None
+        from_city = self.user_slots['from_city'].mph()[1] if 'from_city' in self.user_slots else None
+        to_stop = self.user_slots['to_stop'].mph()[1] if 'to_stop' in self.user_slots else None
+        to_city = self.user_slots['to_city'].mph()[1] if 'to_city' in self.user_slots else None
+
+        if not self._is_compatible_stops(said_from_stop, walkto_from, from_stop, from_city):
+            has_er = True
+        if not self._is_compatible_stops(said_to_stop, walkto_to, to_stop, to_city):
+            has_er = True
+
+        self.connection_info_matches = not has_er
+
+    def _is_compatible_stops(self, said_stop, walkto, stop, city):
+        if not walkto:
+            if said_stop and stop and stop.lower() not in said_stop.lower():
+                return False
+        else:
+            #we should walk to the destination
+            if said_stop and stop and not self._is_stops_in_same_city(said_stop, stop):
+                return False
+        if said_stop and city and not self._is_stop_in_city(said_stop, city):
+                return False
+        return True
 
     def context_resolution(self, user_da, system_da):
         """Resolves and converts meaning of some user dialogue acts
@@ -371,9 +462,6 @@ class DDDSTracker(DialogueState):
         weight = 0.0;
         #system dialogue act in this case is a reaction to a previous user act!
         if isinstance(system_da, DialogueAct):
-            # self.system_request_history_slots.clear()
-            #todo affirm a deny a negate...???
-
             for dai in system_da:
 
                 if dai.name and dai.value and dai.dat != 'help':
@@ -595,6 +683,8 @@ class DDDSTracker(DialogueState):
         # slots with prefix "uch_"
         # has either slot value or "system-informed".
         for slot, value in hash.iteritems():
+            if value.mph()[1] == 'none':
+                next
             result[slot+"_in"] = "used"
             prob, val = hash[slot].mph()
             if val in ["system-informed", "user-informed"]:
@@ -609,25 +699,46 @@ class DDDSTracker(DialogueState):
 
     def get_value_said_user(self, slot):
         if slot in self.user_slots:
-            return self.user_slots[slot].mph()[1]
+            val =  self.user_slots[slot].mph()[1]
+            if val != "none":
+                return val
+            else: return None
         else:
             return None
 
     def get_value_said_system(self, slot):
         if slot in self.system_slots:
-            return self.system_slots[slot].mph()[1]
+            val = self.system_slots[slot].mph()[1]
+            if val != "none":
+                return val
+            else: return None
         else:
             return None
+
+    def _is_stops_in_same_city(self, stopA, stopB):
+        stopA_city = self.ontology.get_compatible_vals("stop_city", stopA)
+        stopB_city = self.ontology.get_compatible_vals("stop_city", stopB)
+        for city in stopA_city:
+            if city in stopB_city:
+                return True
+        return False
+
+    def _is_stop_in_city(self, stop, city):
+        return stop.lower().startswith(city.lower()) or stop in self.ontology.get_compatible_vals("city_stop", city)
 
     def get_compatible_values(self, dai, da):
         slot_name = dai.name
 
         # prepare known values
         set_values = defaultdict(str)
-        if ("from_city" in self.user_slots): set_values["from_city"] = self.user_slots["from_city"].mph()[1]
-        if ("to_city" in self.user_slots): set_values["to_city"] = self.user_slots["to_city"].mph()[1]
-        if ("from_stop" in self.user_slots): set_values["from_stop"] = self.user_slots["from_stop"].mph()[1]
-        if ("to_stop" in self.user_slots): set_values["to_stop"] = self.user_slots["to_stop"].mph()[1]
+        if "from_city" in self.user_slots and self.user_slots["from_city"].mph()[1] != "none":
+            set_values["from_city"] = self.user_slots["from_city"].mph()[1]
+        if "to_city" in self.user_slots and self.user_slots["to_city"].mph()[1] != "none":
+            set_values["to_city"] = self.user_slots["to_city"].mph()[1]
+        if "from_stop" in self.user_slots and self.user_slots["from_stop"].mph()[1] != "none":
+            set_values["from_stop"] = self.user_slots["from_stop"].mph()[1]
+        if "to_stop" in self.user_slots and self.user_slots["to_stop"].mph()[1] != "none":
+            set_values["to_stop"] = self.user_slots["to_stop"].mph()[1]
         for dai_set in da:
             if (dai_set is not None and dai_set.name is not None and
                 ("city" in dai_set.name or "stop" in dai_set.name) and
@@ -682,17 +793,32 @@ class DDDSTracker(DialogueState):
                     return None
             else:
                 return None
-        else: return None
+        else:
+            return None
 
 
     def get_featurized_hash(self):
         result = defaultdict(str)
 
        # result["num_turns"] = self.turn_number
+        # turn number intervals [0-4, 5-7, 8-12, 13-19, >19]
+        if self.turn_number <= 4:
+            result["num_turns_0-4"] = "true"
+        elif self.turn_number <= 7:
+            result["num_turns_5-7"] = "true"
+        elif self.turn_number <= 12:
+            result["num_turns_8-12"] = "true"
+        elif self.turn_number <= 19:
+            result["num_turns_13-19"] = "true"
+        else:
+            result["num_turns_19-"] = "true"
+
         if self.connection_info_said:
             result["connection_info_said"] = "true"
         if self.connection_error:
             result["connection_info_error"] = "true"
+        if self.connection_info_matches:
+            result["connection_info_maches"] = "true"
 
         # add most recent requests
         for dai in self.last_system_da:
@@ -707,6 +833,8 @@ class DDDSTracker(DialogueState):
 
         #add slots used by user with its value
         for slot, value in self.user_slots.iteritems():
+            if isinstance(value, D3DiscreteValue) and value.mph()[1] == 'none':
+                next
             result["u"+slot+"_in"] = "used"
             if slot == "task":
                 result["u"+slot] = value.mph()[1]
@@ -726,6 +854,8 @@ class DDDSTracker(DialogueState):
 
         #add slots used by system with respect to user values
         for slot, value in self.system_slots.iteritems():
+            if value.mph()[1] == 'none':
+                next
             result["s"+slot+"_in"] = "used"
             if slot.startswith("help"):
                 if value.mph()[1] is not None:
@@ -745,6 +875,8 @@ class DDDSTracker(DialogueState):
         # slots with prefix "urh_"
         # has only "user-requested" and "system-informed" values.
         for slot, value in self.user_request_history_slots.iteritems():
+            if value.mph()[1] == 'none':
+                next
             result[slot+"_in"] = "used"
             prob, val = self.user_request_history_slots[slot].mph()
             result[slot] = val
@@ -755,6 +887,8 @@ class DDDSTracker(DialogueState):
         # slots with prefix "srh_"
         # has only "system-requested" and "user-informed" values.
         for slot, value in self.system_request_history_slots.iteritems():
+            if value.mph()[1] == 'none':
+                next
             result[slot+"_in"] = "used"
             prob, val = self.system_request_history_slots[slot].mph()
             result[slot] = val

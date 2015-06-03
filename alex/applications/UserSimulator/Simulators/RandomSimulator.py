@@ -13,7 +13,7 @@ from Trainig.NgramsTrained import NgramsTrained
 from Generators.randomGenerator import RandomGenerator
 
 
-class SimpleNgramSimulator(Simulator):
+class RandomSimulator(Simulator):
 
     def new_dialogue(self):
         pass
@@ -23,9 +23,6 @@ class SimpleNgramSimulator(Simulator):
         self.n = 2
         self.simulator = NgramsTrained(self.n)
         #self.slu = slu_factory(cfg)
-
-        self.uniform_counter = 0
-        self.found_counter = 0
 
     def train_simulator(self, cfg):
         list_of_files = FileReader.read_file(cfg['UserSimulation']['files']['training-data'])
@@ -48,27 +45,17 @@ class SimpleNgramSimulator(Simulator):
                 raise
 
 
-    # def train_simulator_using_slu(self,filename_filelist, slu):
-    #     list_of_files = FileReader.read_file(filename_filelist)
-    #     self.simulator = NgramsTrained(2)
-    #
-    #     for file in list_of_files:
-    #         print "processing file", file
-    #         dialogue = Preprocessing.prepare_conversations(FileReader.read_file(file))
-    #         self.simulator.train_counts(dialogue)
-    #     # self.simulator.print_table_bigrams()
+    def get_oov(self):
+        return 0.0
 
     @staticmethod
     def load(cfg):
-        sim = SimpleNgramSimulator(cfg)
+        sim = RandomSimulator(cfg)
         sim.simulator = NgramsTrained.load(cfg['UserSimulation']['files']['model'])
         return sim
 
     def save(self, cfg):
         self.simulator.save(cfg['UserSimulation']['files']['model'])
-
-    def get_oov(self):
-        return self.uniform_counter/(self.found_counter+self.uniform_counter+0.0)
 
     def generate_response_from_history(self, history):
         return self.generate_response(history[-1])
@@ -77,18 +64,9 @@ class SimpleNgramSimulator(Simulator):
         hist = (unicode(system_da),)
         nblist = DialogueActNBList()
 
-        # print "generating:", hist
-        reactions = self.simulator.get_possible_reactions(hist)
-        # print "Possible reactions:", reactions
+        reactions = self.simulator.get_possible_unigrams()
 
-        if not reactions:
-            reactions = self.simulator.get_possible_unigrams()
-            self.uniform_counter += 1
-        else:
-            self.found_counter += 1
-
-        response = DialogueAct(RandomGenerator.generate_random_response(
-                               reactions[0], reactions[1], reactions[2]))
+        response = DialogueAct(RandomGenerator.generate_random_response_uniform(reactions[0]))
         nblist.add(1.0, response)
 
         nblist.merge()

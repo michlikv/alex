@@ -14,6 +14,9 @@ from Generators.randomGenerator import RandomGenerator
 
 class NgramSimulatorFilterSlots(Simulator):
 
+    def new_dialogue(self):
+        pass
+
     def __init__(self, cfg):
         # todo N will be in  CFG?.
         self.cfg = cfg
@@ -21,8 +24,11 @@ class NgramSimulatorFilterSlots(Simulator):
         self.simulator = NgramsTrained(self.n)
         self.slotvals = NgramsTrained(2)
 
-    def train_simulator(self, filename_filelist):
-        list_of_files = FileReader.read_file(filename_filelist)
+        self.uniform_counter = 0
+        self.found_counter = 0
+
+    def train_simulator(self, cfg):
+        list_of_files = FileReader.read_file(cfg['UserSimulation']['files']['training-data'])
         self.simulator = NgramsTrained(self.n)
 
         for f in list_of_files:
@@ -36,30 +42,43 @@ class NgramSimulatorFilterSlots(Simulator):
                     dialogue = Preprocessing.prepare_conversations(dialogue,
                                                                    Preprocessing.create_act_from_stack_use_last,
                                                                    Preprocessing.create_act_from_stack_use_last)
-
+                    Preprocessing.clear_numerics(dialogue)
                     #dialogue = Preprocessing.convert_string_to_dialogue_acts("")
                     dialogue = [DialogueAct(d) for d in dialogue]
 
                     Preprocessing.add_end_da(dialogue)
                     # save slot values
-                    slot_values = Preprocessing.get_slot_names_plus_values_from_dialogue(dialogue)
+                    slot_values = Preprocessing.get_slot_names_plus_values_from_dialogue(dialogue,
+                                                                                         ignore_values=['none', '*'])
                     # remove slot values
                     Preprocessing.remove_slot_values_from_dialogue(dialogue)
 
                     dialogue = [Preprocessing.shorten_connection_info(a) for a in dialogue]
 
-                    self.simulator.train_counts(dialogue, DialogueAct)
+                    self.simulator.train_counts(dialogue)
 
-                    self.slotvals.train_counts(slot_values, unicode)
+                    self.slotvals.train_counts(slot_values)
                     # self.simulator.print_table_bigrams()
             except:
                 self.cfg['Logging']['system_logger'].info('Error: '+f)
+                raise
 
-    def load_simulator(self, filename):
-        self.simulator = NgramsTrained.load(filename)
+    @staticmethod
+    def load(cfg):
+        sim = NgramSimulatorFilterSlots(cfg)
+        sim.simulator = NgramsTrained.load(cfg['UserSimulation']['files']['model'])
+        sim.slotvals = NgramsTrained.load(cfg['UserSimulation']['files']['slotvals'])
+        return sim
 
-    def save_simulator(self, filename):
-        self.simulator.save(filename)
+    def save(self, cfg):
+        self.simulator.save(cfg['UserSimulation']['files']['model'])
+        self.slotvals.save(cfg['UserSimulation']['files']['slotvals'])
+
+    def get_oov(self):
+        return self.uniform_counter/(self.found_counter+self.uniform_counter+0.0)
+
+    def generate_response_from_history(self, history):
+        return self.generate_response(history[-1])
 
     def generate_response(self, system_da):
         # preprocess DA
@@ -77,8 +96,9 @@ class NgramSimulatorFilterSlots(Simulator):
         # print "Possible reactions:", reactions
         if not reactions:
             reactions = self.simulator.get_possible_unigrams()
+            self.uniform_counter += 1
         else:
-            print "DA found in history :-)", filtered
+            self.found_counter += 1
 
         response = RandomGenerator.generate_random_response(reactions[0], reactions[1], reactions[2])
 
@@ -89,6 +109,8 @@ class NgramSimulatorFilterSlots(Simulator):
                 possible_values = self.slotvals.get_possible_reactions((dai.name,))
                 if not possible_values:
                     possible_values = self.slotvals.get_possible_unigrams()
+                    print "No SLOT VALUE FOR SLOT NAME:", dai.name
+                    raise
 
                 selected = RandomGenerator.generate_random_response(possible_values[0],
                                                                     possible_values[1],

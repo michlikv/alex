@@ -144,13 +144,15 @@ class Preprocessing:
                     dai.value = '&'
 
     @staticmethod
-    def get_slot_names_plus_values_from_dialogue(dialogue):
-        slot_pairs = [Preprocessing.get_slot_names_plus_values(x) for x in dialogue]
+    def get_slot_names_plus_values_from_dialogue(dialogue, ignore_slots=[], ignore_values=[]):
+        dialogue
+        slot_pairs = [Preprocessing.get_slot_names_plus_values(x, ignore_slots, ignore_values) for x in dialogue]
         return flatten(slot_pairs)
 
     @staticmethod
-    def get_slot_names_plus_values(da):
+    def get_slot_names_plus_values(da, ignore_slots=[], ignore_values=[]):
         slot_pairs = da.get_slots_and_values()
+        slot_pairs = [[s, v] for s, v in slot_pairs if s not in ignore_slots and v not in ignore_values]
         return slot_pairs
 
 
@@ -179,13 +181,15 @@ class Preprocessing:
     @staticmethod
     def add_end_da(dialogue):
         if len(dialogue) % 2 == 0:
-            return dialogue[-1].append(DialogueActItem(Preprocessing.end_of_dialogue))
+            dialogue[-1].append(DialogueActItem(Preprocessing.end_of_dialogue))
+            return dialogue
         else:
             return dialogue.append(DialogueAct(Preprocessing.end_of_dialogue + '()'))
 
     @staticmethod
     def add_end_string(dialogue):
         if len(dialogue) % 2 == 0:
-            return dialogue[-1] + '&' + Preprocessing.end_of_dialogue + '()'
+            dialogue[-1] = dialogue[-1] + '&' + Preprocessing.end_of_dialogue + '()'
+            return dialogue
         else:
             return dialogue.append(Preprocessing.end_of_dialogue + '()')
