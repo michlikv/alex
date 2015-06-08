@@ -103,19 +103,24 @@ class NgramSimulatorFilterSlots(Simulator):
         response = RandomGenerator.generate_random_response(reactions[0], reactions[1], reactions[2])
 
         response = deepcopy(response)
+        new_resp = DialogueAct()
 
         for dai in response.dais:
             if dai.value:
                 possible_values = self.slotvals.get_possible_reactions((dai.name,))
                 if not possible_values:
-                    possible_values = self.slotvals.get_possible_unigrams()
+                    #possible_values = self.slotvals.get_possible_unigrams()
                     print "No SLOT VALUE FOR SLOT NAME:", dai.name
                     raise
-
-                selected = RandomGenerator.generate_random_response(possible_values[0],
+                else:
+                    selected = RandomGenerator.generate_random_response(possible_values[0],
                                                                     possible_values[1],
                                                                     possible_values[2])
-                dai.value = selected
+                    dai.value = selected
+                    new_resp.append(dai)
+        if len(new_resp)==0:
+            new_resp = DialogueAct('null()')
+        response = new_resp
 
         #response = DialogueAct(response)
         nblist.add(1.0, response)

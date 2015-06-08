@@ -196,7 +196,7 @@ class MLsimulator(Simulator):
         #training data stats
         self.make_stats(self.vectors_train, self.classes_train, prefixfile+"-train-", thresholds)
         #testing data stats
-        self.make_stats(self.vectors_test, self.classes_test, prefixfile+"-test-")
+        self.make_stats(self.vectors_test, self.classes_test, prefixfile+"-test-", thresholds)
         #thresholds = numpy.linspace(0.1, 0.3, 11)
         #self.make_stats(self.vectors_train, self.classes_train, prefixfile+"-0203-", thresholds)
 
@@ -305,28 +305,17 @@ class MLsimulator(Simulator):
         :return: sampled DA
         """
         response_real = []
-        response_messed = []
 
         # classify vector, sample response
         for name, classifier in self.classifiers.iteritems():
             prob = classifier.predict_proba(vector)[0, 1]
 
-            inverse = False
-            if self._do_error_model and RandomGenerator.is_generated(self._mess_dai_rate):
-                inverse = True
-
             is_generated = RandomGenerator.is_generated(prob)
-            if is_generated and not inverse:
+            if is_generated:
                 response_real.append(name)
-                response_messed.append(name)
-            elif is_generated and inverse:
-                response_real.append(name)
-            elif not is_generated and inverse:
-                response_messed.append(name)
 
         realDA = DialogueAct("&".join(response_real)) if len(response_real) > 0 else None
-        messDA = DialogueAct("&".join(response_messed)) if len(response_messed) > 0 else None
-        return realDA, messDA
+        return realDA
 
     def _sample_response_sec(self, vector):
         """
@@ -366,26 +355,27 @@ class MLsimulator(Simulator):
                         if possible_values is None or len(possible_values) == 0:
                             possible_values = None
                     if possible_values is None:
+                        print "possible values",possible_values
+                        print "dai.name",dai.name
                         possible_values, v, s = self.slotvals.get_possible_reactions((dai.name,))
-                        # #todo remove this after alternatives are fixed :)
-                        # if dai.name == "alternative":
-                        #     possible_values = list(self.ontology['slots']['alternative'])
-                        #     possible_values=possible_values[:-1]
+
                         if not possible_values:
-                            possible_values, v, s = self.slotvals.get_possible_unigrams() #todo this should not happen.
+                            #possible_values, v, s = self.slotvals.get_possible_unigrams()
+                            print "No SLOT VALUE FOR SLOT NAME:", dai.name
+                            raise
                     selected = RandomGenerator.generate_random_response_uniform(possible_values)
                 dai.value = selected
 
-    def _messup_slot_values(self, response):
-        mess = deepcopy(response)
-
-        for dai in mess.dais:
-            if dai.value and RandomGenerator.is_generated(self._mess_dai_rate):
-                # if there is a value and we decide to alter values, choose uniformly different value
-                possible_values, v, s = self.slotvals.get_possible_reactions((dai.name,))
-                selected = RandomGenerator.generate_random_response_uniform(possible_values)
-                dai.value = selected
-        return mess
+    # def _messup_slot_values(self, response):
+    #     mess = deepcopy(response)
+    #
+    #     for dai in mess.dais:
+    #         if dai.value and RandomGenerator.is_generated(self._mess_dai_rate):
+    #             # if there is a value and we decide to alter values, choose uniformly different value
+    #             possible_values, v, s = self.slotvals.get_possible_reactions((dai.name,))
+    #             selected = RandomGenerator.generate_random_response_uniform(possible_values)
+    #             dai.value = selected
+    #     return mess
 
     def get_oov(self):
         return 0.0
@@ -404,7 +394,7 @@ class MLsimulator(Simulator):
         # create vector from state
         vector = self.vectorizer.transform(self.tracker.get_featurized_hash())
         #sample response from vector
-        response, mess_resp = self._sample_response(vector)
+        response = self._sample_response(vector)
 
         # fill in slot values or set to null act
         if response is not None:
@@ -425,42 +415,16 @@ class MLsimulator(Simulator):
 
         # create vector from state
         vector = self.vectorizer.transform(self.tracker.get_featurized_hash())
-        response, messed = self._sample_response(vector)
+        response = self._sample_response(vector)
 
         if response is None:
             response = DialogueAct('null()')
-        if messed is None:
-            messed = DialogueAct('null()')
-
-        merged = DialogueAct()
-        for dai in response:
-            merged.append(dai)
-        for dai in messed:
-            merged.append(dai)
-        merged.merge_same_dais()
-
-        if merged is not None:
-            self._fill_in_slot_values(merged)
-            messed_merged = self._messup_slot_values(merged)
-        else:
-            merged = DialogueAct('null()')
-
-        for dai in response:
-            if dai.value:
-                for dai_m in merged:
-                    if dai_m.dat == dai.dat and dai_m.name == dai.name:
-                        dai.value = dai_m.value
-
-        for dai in messed:
-            if dai.value:
-                for dai_m in messed_merged:
-                    if dai_m.dat == dai.dat and dai_m.name == dai.name:
-                        dai.value = dai_m.value
+        self._fill_in_slot_values(response)
 
         self.luda = response
 
         nblist = DialogueActNBList()
-        nblist.add(1.0, messed)
+        nblist.add(1.0, response)
         nblist.merge()
         nblist.scale()
         return nblist.get_confnet()
@@ -520,7 +484,7 @@ class eval:
                 probs = [prob]*size
                 probs = numpy.array([0 if p <= t else 1 for p, t in zip(probs, thresholds)])
                 pom += probs
-                if classes[name][i] == 1:
+                if name in classes and classes[name][i] == 1:
                     total_pos += 1
                     true_pos += probs
                 else:
@@ -529,10 +493,10 @@ class eval:
             # if user said null, predicted null is ok -- add one act to truly positives and one to total positives
             # we must not divide by zero!
             if total_pos < 1.0:
-                true_pos = [1.0 if tp+fp < 1.0 else tp for tp, fp in zip(true_pos, false_pos)]
+                true_pos = numpy.array([1.0 if tp+fp < 1.0 else tp for tp, fp in zip(true_pos, false_pos)])
                 total_pos += 1
             else:
-                false_pos = [1.0 if tp+fp < 1.0 else fp for tp, fp in zip(true_pos, false_pos)]
+                false_pos = numpy.array([1.0 if tp+fp < 1.0 else fp for tp, fp in zip(true_pos, false_pos)])
 
             #count precision and recall, add to list.
             precisions.append(true_pos/(true_pos+false_pos))
