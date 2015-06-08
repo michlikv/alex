@@ -81,7 +81,7 @@ class SimpleNgramSimulator(Simulator):
         reactions = self.simulator.get_possible_reactions(hist)
         # print "Possible reactions:", reactions
 
-        if not reactions:
+        if not reactions[0]:
             reactions = self.simulator.get_possible_unigrams()
             self.uniform_counter += 1
         else:

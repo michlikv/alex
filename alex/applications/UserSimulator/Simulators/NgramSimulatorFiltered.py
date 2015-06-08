@@ -94,7 +94,7 @@ class NgramSimulatorFilterSlots(Simulator):
         reactions = self.simulator.get_possible_reactions(hist)
 
         # print "Possible reactions:", reactions
-        if not reactions:
+        if not reactions[0]:
             reactions = self.simulator.get_possible_unigrams()
             self.uniform_counter += 1
         else:
@@ -117,17 +117,15 @@ class NgramSimulatorFilterSlots(Simulator):
                                                                     possible_values[1],
                                                                     possible_values[2])
                     dai.value = selected
-                    new_resp.append(dai)
-        if len(new_resp)==0:
+            new_resp.append(dai)
+        if len(new_resp) == 0:
             new_resp = DialogueAct('null()')
         response = new_resp
 
         #response = DialogueAct(response)
         nblist.add(1.0, response)
-
         nblist.merge()
         nblist.scale()
-
         return nblist.get_confnet()
 
 
