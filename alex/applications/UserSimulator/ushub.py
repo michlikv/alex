@@ -53,10 +53,14 @@ class Generator:
 
             while unicode(user_nblist.get_best_da()).find('hangup()') == -1:
 #               generate DM dialogue act
-                self.dm.log_state()
+
+                #self.dm.log_state()
                 system_da = self.dm.da_out()
                 self.output_da(system_da)
                 dialogue.append("system: "+unicode(system_da))
+
+                if 'none' in unicode(system_da):
+                    pass
 
 #               generate User dialogue act
                 user_nblist = self.simulator.generate_response(system_da)
@@ -143,5 +147,6 @@ if __name__ == '__main__':
             cfg['Logging']['system_logger'].exception('Exception in Generation process!')
             errors += 1
         print i
+        print "Errors:", errors
     print "Errors:", errors
     print "."

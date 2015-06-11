@@ -67,7 +67,8 @@ class DDDSTracker(DialogueState):
         self.turn_number = 0
 
         #todo settingy z kategorie USimulate??
-        self.debug = cfg['DM']['basic']['debug']
+        self.debug = cfg['UserSimulation']['debug']
+
         self.type = cfg['DM']['DeterministicDiscriminativeDialogueState']['type']
         self.session_logger = cfg['Logging']['session_logger']
         self.system_logger = cfg['Logging']['system_logger']

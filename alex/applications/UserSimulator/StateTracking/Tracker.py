@@ -11,6 +11,7 @@ class Tracker:
         # self.dialogue_state_class = cfg['UserSimulation']['dialogue_state']['type']
         self.cfg = cfg
         self.ontology = Ontology(cfg['UserSimulation']['ontology'])
+        self.use_log = 'log' in cfg['UserSimulation'] and cfg['UserSimulation']['log']
         # self.dialogue_state = self.dialogue_state_class(cfg, self.ontology)
         self.dialogue_state = DDDSTracker(cfg, self.ontology)
 
@@ -22,8 +23,9 @@ class Tracker:
         self.dialogue_state = DDDSTracker(self.cfg, self.ontology)
 
     def log_state(self):
+        if self.use_log:
         #print unicode(self.dialogue_state)
-        self.dialogue_state.log_state()
+            self.dialogue_state.log_state()
         # print unicode(self.dialogue_state)
 
     def unicode_state(self):

@@ -53,14 +53,38 @@ class Eval:
         listT = FileReader.read_file(test_list)
         for filename in listT:
             print('Processing:', filename)
-            self.test_dialogues.append(self.get_dialogue_from_file(filename))
+            if os.path.isfile(filename):
+                self.test_dialogues.append(self.get_dialogue_from_file(filename))
+            else:
+                print('Is not file:', filename)
 
     def _count_stats(self, list_dialogues, statsl):
         listT = FileReader.read_file(list_dialogues)
         for filename in listT:
             print('Processing:', filename)
-            dialogue = self.get_dialogue_from_file(filename)
-            statsl.update_structure(dialogue)
+            if os.path.isfile(filename):
+                dialogue = self.get_dialogue_from_file(filename)
+                statsl.update_structure(dialogue)
+            else:
+                print('Is not file:', filename)
+
+    def run_prec_rec(self, test_list):
+        # prepare test file
+        self.cfg['Logging']['system_logger'].info("Counting test statistics")
+        self._prepare_test_dialogues(test_list)
+        for dialogue in self.test_dialogues:
+            self.stats.update_structure(dialogue)
+
+        #precision and recall finding stable number
+        for i in range(0, 100):
+            for name, simulator in self.simulators.iteritems():
+                simulator['stats'].precisions = []
+                simulator['stats'].recalls = []
+                for dialogue in self.test_dialogues:
+                    simulator['stats'].count_precision_recall(dialogue)
+            print(i)
+            #if i % 5 == 0:
+            Draw_plots.print_mean_prec_rec_to_file(self.simulators, self.dirname+"/dialogue-prec-rec.txt")
 
     def run(self, test_list):
         # prepare test file
@@ -68,15 +92,6 @@ class Eval:
         self._prepare_test_dialogues(test_list)
         for dialogue in self.test_dialogues:
             self.stats.update_structure(dialogue)
-
-        #precision and recall finding equilibrium
-        for i in range(0, 51):
-            for name, simulator in self.simulators.iteritems():
-                for dialogue in self.test_dialogues:
-                    simulator['stats'].count_precision_recall(dialogue)
-            if i % 5 == 0:
-                Draw_plots.print_mean_prec_rec_to_file(self.simulators, self.dirname+"/"+str(i)+"-dialogue-prec-rec.txt")
-
 
         dial_lengths = defaultdict(str)
         dial_lengths['TEST'] = self.stats.dialogue_lengths
@@ -93,6 +108,12 @@ class Eval:
         num_con_info = defaultdict(str)
         num_con_info['TEST'] = self.stats.nums_con_info
 
+        num_uniq_con_info = defaultdict(str)
+        num_uniq_con_info['TEST'] = self.stats.nums_uniq_con_info
+
+        num_apology = defaultdict(str)
+        num_apology['TEST'] = self.stats.nums_apology
+
         system_user_ratio = defaultdict(str)
         system = self.stats.system_acts_count + 0.0
         user = self.stats.user_acts_count + 0.0
@@ -108,12 +129,13 @@ class Eval:
             user_turn_lengths[name] = stats_sim.user_turn_lengths
             short_turn_lengths[name] = stats_sim.shortened_turn_lengths
             num_con_info[name] = stats_sim.nums_con_info
+            num_uniq_con_info[name] = stats_sim.nums_uniq_con_info
+            num_apology[name] = stats_sim.nums_apology
 
             system = stats_sim.system_acts_count + 0.0
             user = stats_sim.user_acts_count + 0.0
             system_user_ratio[name] = [system/(system+user), user/(system+user)]
 
-        Draw_plots.print_mean_prec_rec_to_file(self.simulators, self.dirname+"/dialogue-prec-rec.txt")
         # dialogue lengths
         Draw_plots.count_length_stats(dial_lengths, self.dirname+"/dialogue-length.txt")
         Draw_plots.plot_mean_lengths_stats(dial_lengths, self.dirname + "/dialogue-lengths.png", "Dialogue Lengths")
@@ -134,10 +156,15 @@ class Eval:
         Draw_plots.plot_mean_lengths_stats(short_turn_lengths, self.dirname + "/short-turn-lengths.png", "Shortened Turn Lengths")
         Draw_plots.plot_histogram_lines(short_turn_lengths, self.dirname + "/short-turn-lengths-hist.png", title="Shortened Turn Lengths")
 
-        Draw_plots.count_length_stats(num_con_info, self.dirname+"/num_con_info.txt")
-        Draw_plots.plot_mean_lengths_stats(num_con_info, self.dirname + "/num_con_info.png", "Number of connection info per dialogue")
+        Draw_plots.count_length_stats_nonzero(num_con_info, self.dirname+"/num_con_info.txt")
+        Draw_plots.plot_mean_lengths_stats_nonzero(num_con_info, self.dirname + "/num_con_info_bars.png", "Number of connection info per dialogue")
         Draw_plots.plot_histogram_lines(num_con_info, self.dirname + "/num_con_info.png", title="Number of connection info per dialogue")
 
+        Draw_plots.count_length_stats_nonzero(num_uniq_con_info, self.dirname+"/num_uniq_con_info.txt")
+        Draw_plots.plot_mean_lengths_stats_nonzero(num_uniq_con_info, self.dirname + "/num_uniq_con_info_bars.png", "Number of unique connection info per dialogue")
+        Draw_plots.plot_histogram_lines(num_uniq_con_info, self.dirname + "/num_uniq_con_info.png", title="Number of unique connection info per dialogue")
+
+        Draw_plots.count_freq_stats_nonzero(num_con_info, num_apology, self.dirname+"/num_con_apo_info.txt")
 
         #todo create output
         #Draw_plots.count_length_stats(self.stats.unique_acts, self.dirname+"/Real-avg-acts.txt")
@@ -169,15 +196,22 @@ class DialogueStats:
     def __init__(self, simulator=None):
         # Structures for dialogue statistics
         self.dialogue_lengths = numpy.array([], dtype=int)
+
         self.turn_lengths = numpy.array([], dtype=int)
         self.user_turn_lengths = numpy.array([], dtype=int)
         self.shortened_turn_lengths = numpy.array([], dtype=int)
+
         self.nums_con_info = numpy.array([], dtype=int)
+        self.nums_uniq_con_info = numpy.array([], dtype=int)
+        self.nums_apology = numpy.array([], dtype=int)
+
         self.unique_acts = defaultdict(str)
         self.system_acts_count = 0
         self.user_acts_count = 0
+
         self.precisions = []
         self.recalls = []
+
         self.simulator = simulator
 
     def update_structure(self, dialogue):
@@ -197,7 +231,6 @@ class DialogueStats:
                 p, r = self._count_prec_rec(real_resp, sim_resp.get_best_da())
                 self.precisions.append(p)
                 self.recalls.append(r)
-            pass
 
     def _count_prec_rec(self, real_da, sim_da):
         correct = 0
@@ -215,7 +248,7 @@ class DialogueStats:
     def _append_system_user_acts(self, dialogue):
         d = dialogue
         while len(d) > 1:
-            self.system_acts_count += len(d[0])
+            self.system_acts_count += len(Preprocessing.shorten_connection_info(d[0]))
             self.user_acts_count += len(d[1])
             d = d[2:]
 
@@ -240,6 +273,9 @@ class DialogueStats:
     def _append_turn_length(self, dialogue):
         d = dialogue
         num_con_info = 0
+        uniq_con_info = set()
+        apology = 0
+
         while len(d) > 1:
             self.turn_lengths = numpy.append(self.turn_lengths, len(d[0]) + len(d[1]))
             self.user_turn_lengths = numpy.append(self.user_turn_lengths, len(d[1]))
@@ -249,9 +285,21 @@ class DialogueStats:
             if unicode(d[0]) != unicode(a):
                 num_con_info += 1
 
+                prefix = unicode(a)[:-16]
+                if len(prefix) == 0 or unicode(d[0]).startswith(prefix):
+                    con_inf = unicode(d[0])[len(prefix):]
+                    uniq_con_info.add(con_inf)
+                else:
+                    raise
+
+            if 'apology' in unicode(d[0]):
+                apology += 1
+
             self.shortened_turn_lengths = numpy.append(self.shortened_turn_lengths, len(a)+len(d[1]))
             d = d[2:]
         self.nums_con_info = numpy.append(self.nums_con_info, num_con_info)
+        self.nums_uniq_con_info = numpy.append(self.nums_uniq_con_info, len(uniq_con_info))
+        self.nums_apology = numpy.append(self.nums_apology, apology)
 
 
 class Draw_plots:
@@ -290,7 +338,7 @@ class Draw_plots:
             maxY = max([maxY, max(y)])
             styles = styles[1:]
 
-        plt.title(title)
+        #plt.title(title)
         plt.axis([minX, maxX, minY, maxY])
         # plt.xlabel('')
         # plt.ylabel('val')
@@ -301,13 +349,13 @@ class Draw_plots:
 
     @staticmethod
     def print_mean_prec_rec_to_file(simulators, filename):
-        lines = ["name\tprecision\trecall"]
+        lines = [] #["name\tprecision\trecall"]
         for name, simuls in simulators.iteritems():
             precs = simuls['stats'].precisions
             recs = simuls['stats'].recalls
             lines.append(name+"\t"+str(numpy.mean(precs))+"\t"+str(numpy.mean(recs))+"\t"+
                          str(simuls['stats'].simulator.get_oov()))
-        FileWriter.write_file(filename, lines)
+        FileWriter.write_file_append(filename, lines)
         pass
 
 
@@ -317,6 +365,39 @@ class Draw_plots:
         for name, nums in numbers.iteritems():
             lines.append(name+"\t"+str(numpy.mean(nums))+"\t"+str(numpy.median(nums))+"\t"+str(numpy.std(nums))+"\t" \
                          +str(numpy.min(nums))+"\t"+str(numpy.max(nums)))
+        lines.append('')
+        for name, nums in numbers.iteritems():
+            lines.append(name+"\t"+str(nums))
+
+        FileWriter.write_file(filename, lines)
+
+    @staticmethod
+    def count_freq_stats_nonzero(num_con_info, num_apology, filename):
+        lines = ["name\t1\t2\t1and2\ttotal"]
+        for name, nums_a in num_con_info.iteritems():
+            nums_b = num_apology[name]
+
+            a_b = [1 for a, b in zip(nums_a, nums_b) if a > 0 and b > 0]
+            a = [1 for a in nums_a if a > 0]
+            b = [1 for b in nums_b if b > 0]
+
+            lines.append(name+"\t"+str(sum(a))+"\t"+str(sum(b))+"\t"+str(sum(a_b))+"\t" \
+                         +str(len(nums_a)))
+        lines.append('')
+
+        FileWriter.write_file(filename, lines)
+
+    @staticmethod
+    def count_length_stats_nonzero(numbers, filename):
+        lines = ["name\tmean\tmedian\tstd_dev\tmin\tmax\t% of nonzero"]
+        for name, nums_zeros in numbers.iteritems():
+            nums = [a for a in nums_zeros if a > 0.0]
+            lines.append(name+"\t"+str(numpy.mean(nums))+"\t"+str(numpy.median(nums))+"\t"+str(numpy.std(nums))+"\t" \
+                         +str(numpy.min(nums))+"\t"+str(numpy.max(nums))+"\t"+str((0.0+len(nums))/len(nums_zeros)) )
+        lines.append('')
+        for name, nums in numbers.iteritems():
+            lines.append(name+"\t"+str(nums))
+
         FileWriter.write_file(filename, lines)
 
     @staticmethod
@@ -324,7 +405,7 @@ class Draw_plots:
         for name, nums in numbers.iteritems():
             plt.hist(nums, bins=b, histtype='step', normed=True, label=name)
 
-        plt.title(title)
+        #plt.title(title)
         plt.grid(True)
         plt.legend()
         plt.savefig(filename)
@@ -338,7 +419,7 @@ class Draw_plots:
             bincenters = bin[:-1] + (bin[1] - bin[0])/2
             plt.plot(bincenters, y, "-", label=name)
 
-        plt.title(title)
+        #plt.title(title)
         plt.grid(True)
         plt.legend()
         plt.savefig(filename)
@@ -367,7 +448,7 @@ class Draw_plots:
             colors = colors[1:]
 
         plt.xticks(ind+w*N/2., names)
-        plt.title(title)
+        #plt.title(title)
         plt.grid(True)
         plt.legend()
         plt.savefig(filename)
@@ -394,12 +475,19 @@ class Draw_plots:
         p2 = plt.bar(ind, nums_user, width, color='y', align='center', label="User", bottom=nums_system)#, yerr=menStd)
 
         plt.xticks(ind+width/2., xlabels)
-        plt.title(title)
+        #plt.title(title)
         plt.grid(True)
         plt.legend()
         plt.savefig(filename)
         plt.show()
         plt.close()
+
+    @staticmethod
+    def plot_mean_lengths_stats_nonzero(numbers, filename, title=""):
+        nums = defaultdict(str)
+        for name, n in numbers.iteritems():
+            nums[name] = [a for a in n if a > 0.0]
+        Draw_plots.plot_mean_lengths_stats(nums, filename, title)
 
     @staticmethod
     def plot_mean_lengths_stats(numbers, filename, title=""):
@@ -415,10 +503,10 @@ class Draw_plots:
         ind = numpy.arange(N)  # the x locations for the groups
         width = 0.10       # the width of the bar
 
-        plt.bar(ind, means, width, align='center', color='r', yerr=std_dev)
+        plt.bar(ind, means, width, align='center', color='b', yerr=std_dev)
         # add some text for labels, title and axes ticks
         plt.ylabel('Means')
-        plt.title(title)
+        #plt.title(title)
         plt.xticks(ind+width, xlabels)
 
         #ax.legend( (rects1[0], rects2[0]), ('Men', 'Women') )
@@ -437,34 +525,6 @@ class Draw_plots:
         plt.show()
         plt.close()
 
-    # def count_dialogue_length_stats(self):
-    #     #print histogram
-    #     a = numpy.array(self.dialogue_lengths)
-    #     print("Dialogue length stats:")
-    #     print("min:", min(self.dialogue_lengths),
-    #          "median:", numpy.median(self.dialogue_lengths),
-    #          "mean:", numpy.mean(self.dialogue_lengths),
-    #          "std dev:", numpy.std(self.dialogue_lengths),
-    #          "max:", max(self.dialogue_lengths))
-    #
-    #     s = sorted(self.dialogue_lengths)
-    #     q = len(self.dialogue_lengths) / 4
-    #     h = len(self.dialogue_lengths) / 10
-    #     print(0.25, s[1*q], 0.5, s[2*q], 0.75, s[3*q], 0.9, s[int(9*h)])
-    #
-    #     # the histogram of the data
-    #     n, bins, patches = plt.hist(self.dialogue_lengths, 50, normed=1, facecolor='b')# , alpha=0.75)
-    #
-    #     plt.xlabel('Lengths')
-    #     plt.ylabel('Amount')
-    #     plt.title('Histogram of dialogue lengths')
-    #     plt.axis([0, 50, 0, 0.15])
-    #     plt.grid(True)
-    #     plt.show()
-    #     plt.savefig(self.dirname+"/dialogue-length-hist.png")
-    #     plt.close()
-
-
 #########################################################################
 #########################################################################
 
@@ -482,6 +542,8 @@ if __name__ == '__main__':
                         help='additional configuration files')
     parser.add_argument('-s', "--sim", type=str, required=True, nargs=2, action='append',
                         help='tuple of simulator config and a file with list of its dialogues')
+    parser.add_argument('-p', "--precrec", default=False, action='store_true',
+                        help='count only precision and recall')
     parser.add_argument('-t', "--test", type=str, required=True,
                         help='list of files with test dialogues')
     args = parser.parse_args()
@@ -525,4 +587,7 @@ if __name__ == '__main__':
         os.makedirs(dirname)
 
     evaluator = Eval(cfg, dirname, simulators)
-    evaluator.run(test_list)
+    if args.precrec:
+        evaluator.run_prec_rec(test_list)
+    else:
+        evaluator.run(test_list)

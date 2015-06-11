@@ -34,7 +34,6 @@ class NgramsTrained(TrainedStructure):
     # returns list of possible reactions with its counts and total count as tuple
     # or null if history is unknown
     def get_possible_reactions(self, hist):
-        print hist
         if self._structure.get(hist, None):
             vals = self._structure[hist].values()
             return self._structure[hist].keys(), vals, sum(vals)

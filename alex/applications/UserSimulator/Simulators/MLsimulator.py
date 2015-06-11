@@ -254,15 +254,11 @@ class MLsimulator(Simulator):
     def save(self, cfg):
         if 'vectorizer' in cfg['UserSimulation']['files']:
             self.save_obj(cfg['UserSimulation']['files']['vectorizer'], self.vectorizer)
-        print "."
         if 'slotvals' in cfg['UserSimulation']['files']:
             self.slotvals.save(cfg['UserSimulation']['files']['slotvals'])
-        print "."
         if 'classifiers' in cfg['UserSimulation']['files']:
             self.save_obj(cfg['UserSimulation']['files']['classifiers'], self.classifiers)
-        print "."
         self._save_features_vects_to_file(self.vectors_train, self.vectors_test)
-        print "."
         self._save_classes_to_file(self.classes_train, self.classes_test)
         print "."
 
@@ -334,7 +330,28 @@ class MLsimulator(Simulator):
         else:
             return None
 
-    def _fill_in_slot_values(self, response):
+    def _fill_in_slot_values(self, response, system_da):
+        #substitute "city" and "stop" with correct context-dependent value
+        cop_da = deepcopy(response)
+        for dai in response:
+            if dai.name and dai.value and dai.name == "city" or dai.name == "stop" and dai.dat == 'inform':
+                dai_system = None
+                # find first request with correct substring
+                for sdai in system_da:
+                    if sdai.name and dai.name in sdai.name and sdai.dat == "request":
+                        dai_system = sdai
+                        break
+                # #if there is no request, try any slot name with substring
+                # if dai_system is None:
+                #     for sdai in system_da:
+                #         if sdai.name is not None and dai.name in sdai.name:
+                #             dai_system = sdai
+                #             break
+                if dai_system:
+                    dai.name = dai_system.name
+                else:
+                    dai.name = "from_"+dai.name
+
         for dai in response.dais:
             if dai.value and dai.value == "&":
                 # deny what system said, confirm and inform what user previously said.
@@ -354,9 +371,8 @@ class MLsimulator(Simulator):
                         possible_values = self.tracker.get_compatible_values(dai, response)
                         if possible_values is None or len(possible_values) == 0:
                             possible_values = None
+
                     if possible_values is None:
-                        print "possible values",possible_values
-                        print "dai.name",dai.name
                         possible_values, v, s = self.slotvals.get_possible_reactions((dai.name,))
 
                         if not possible_values:
@@ -365,6 +381,11 @@ class MLsimulator(Simulator):
                             raise
                     selected = RandomGenerator.generate_random_response_uniform(possible_values)
                 dai.value = selected
+
+        #substitute "city" and "stop" back
+        for daiR, daiO in zip(response, cop_da):
+            if daiO.name and daiR.name and daiO.name != daiR.name:
+                daiR.name = daiO.name
 
     # def _messup_slot_values(self, response):
     #     mess = deepcopy(response)
@@ -419,7 +440,7 @@ class MLsimulator(Simulator):
 
         if response is None:
             response = DialogueAct('null()')
-        self._fill_in_slot_values(response)
+        self._fill_in_slot_values(response, system_da)
 
         self.luda = response
 
