@@ -136,6 +136,9 @@ class Eval:
             user = stats_sim.user_acts_count + 0.0
             system_user_ratio[name] = [system/(system+user), user/(system+user)]
 
+            Draw_plots.print_lengths_tofile(stats_sim.system_acts, stats_sim.i_dial_count, name+"_system_act_count.txt")
+            Draw_plots.print_lengths_tofile(stats_sim.user_acts, stats_sim.i_dial_count, name+"_user_act_count.txt")
+
         # dialogue lengths
         Draw_plots.count_length_stats(dial_lengths, self.dirname+"/dialogue-length.txt")
         Draw_plots.plot_mean_lengths_stats(dial_lengths, self.dirname + "/dialogue-lengths.png", "Dialogue Lengths")
@@ -207,7 +210,10 @@ class DialogueStats:
 
         self.unique_acts = defaultdict(str)
         self.system_acts_count = 0
+        self.system_acts = defaultdict(list)
         self.user_acts_count = 0
+        self.user_acts = defaultdict(list)
+        self.i_dial_count = 0
 
         self.precisions = []
         self.recalls = []
@@ -218,7 +224,7 @@ class DialogueStats:
         self._append_dialogue_length(dialogue)
         self._append_turn_length(dialogue)
         self._append_unique_speech_acts(dialogue)
-        self._append_system_user_acts(dialogue)
+        self._count_num_of_acts(dialogue)
 
     def count_precision_recall(self, dialogue):
         self._append_dialogue_precision_recall(dialogue)
@@ -245,13 +251,6 @@ class DialogueStats:
         return correct/(len(sim_da)+0.0), correct/(len(real_da)+0.0),
         pass
 
-    def _append_system_user_acts(self, dialogue):
-        d = dialogue
-        while len(d) > 1:
-            self.system_acts_count += len(Preprocessing.shorten_connection_info(d[0]))
-            self.user_acts_count += len(d[1])
-            d = d[2:]
-
     def _append_unique_speech_acts(self, dialogue):
         uniq_local = defaultdict(str)
         for da in dialogue:
@@ -269,6 +268,32 @@ class DialogueStats:
 
     def _append_dialogue_length(self, dialogue):
         self.dialogue_lengths = numpy.append(self.dialogue_lengths, len(dialogue)/2)
+
+    def _count_num_of_acts(self, dialogue):
+        d = dialogue
+
+        user_acts = defaultdict(int)
+        system_acts = defaultdict(int)
+        # count user acts, system acts -- to count average number of acts in dialogues
+        while len(d) > 1:
+            self.system_acts_count += len(Preprocessing.shorten_connection_info(d[0]))
+            self.user_acts_count += len(d[1])
+            a = Preprocessing.shorten_connection_info(d[0])
+
+            for dai in a.dais:
+                system_acts[dai.dat] += 1
+
+            for dai in d[1].dais:
+                user_acts[dai.dat] += 1
+
+            d = d[2:]
+
+        for name, val in system_acts.iteritems():
+            self.system_acts[name].append(val)
+
+        for name, val in user_acts.iteritems():
+            self.user_acts[name].append(val)
+        self.i_dial_count += 1
 
     def _append_turn_length(self, dialogue):
         d = dialogue
@@ -368,6 +393,15 @@ class Draw_plots:
         lines.append('')
         for name, nums in numbers.iteritems():
             lines.append(name+"\t"+str(nums))
+
+        FileWriter.write_file(filename, lines)
+
+    @staticmethod
+    def print_lengths_tofile(numbers, total, filename):
+        lines = ["total: "+ str(total)]
+        for name, nums in numbers.iteritems():
+            lines.append(str(name)+"\t"+str(nums))
+        lines.append('')
 
         FileWriter.write_file(filename, lines)
 
@@ -580,7 +614,7 @@ if __name__ == '__main__':
     # cfg['Logging']['session_logger'].input_source("dialogue acts")
 
     ts = time.time()
-    st = datetime.datetime.fromtimestamp(ts).strftime('%Y-%m-%d %H:%M:%S')
+    st = datetime.datetime.fromtimestamp(ts).strftime('%Y-%m-%d--%H:%M:%S')
 
     dirname = "eval/"+st+"eval"
     if not os.path.exists(dirname):

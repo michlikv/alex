@@ -169,9 +169,7 @@ class MLsimulator(Simulator):
 
         self.classifiers = defaultdict(str)
         for name, vector in self.classes_train.iteritems():
-            #todo training with some parameters :) ???
             self.classifiers[name] = linear_model.LogisticRegression(C=1.0, penalty='l1', tol=1e-6)
-            #todo some search for params -- self.classifier.set_params(C=c)
 
             self.classifiers[name].fit(self.vectors_train, vector)
             predict = self.classifiers[name].predict_proba(self.vectors_train)[:, 1]
@@ -341,12 +339,6 @@ class MLsimulator(Simulator):
                     if sdai.name and dai.name in sdai.name and sdai.dat == "request":
                         dai_system = sdai
                         break
-                # #if there is no request, try any slot name with substring
-                # if dai_system is None:
-                #     for sdai in system_da:
-                #         if sdai.name is not None and dai.name in sdai.name:
-                #             dai_system = sdai
-                #             break
                 if dai_system:
                     dai.name = dai_system.name
                 else:
@@ -367,13 +359,17 @@ class MLsimulator(Simulator):
                     selected = from_state
                 else: #generate uniform from compatible values
                     possible_values = None
+
                     if ("city" in dai.name or "stop" in dai.name) and dai.dat != "deny":
                         possible_values = self.tracker.get_compatible_values(dai, response)
                         if possible_values is None or len(possible_values) == 0:
                             possible_values = None
 
                     if possible_values is None:
-                        possible_values, v, s = self.slotvals.get_possible_reactions((dai.name,))
+                        if "city" in dai.name or "stop" in dai.name:
+                            possible_values = list(self.ontology['slots'][dai.name])
+                        else:
+                            possible_values, v, s = self.slotvals.get_possible_reactions((dai.name,))
 
                         if not possible_values:
                             #possible_values, v, s = self.slotvals.get_possible_unigrams()
@@ -419,7 +415,7 @@ class MLsimulator(Simulator):
 
         # fill in slot values or set to null act
         if response is not None:
-            self._fill_in_slot_values(response)
+            self._fill_in_slot_values(response, history[-1])
         else:
             response = DialogueAct('null()')
 

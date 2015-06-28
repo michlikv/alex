@@ -129,7 +129,7 @@ if __name__ == '__main__':
     num_iter = args.num
 
     ts = time.time()
-    st = datetime.datetime.fromtimestamp(ts).strftime('%Y-%m-%d %H:%M:%S')
+    st = datetime.datetime.fromtimestamp(ts).strftime('%Y-%m-%d--%H:%M:%S')
     dirname = "simulated/"+st+"-sim-"+cfg['UserSimulation']['type']
     if not os.path.exists(dirname):
         os.makedirs(dirname)
@@ -140,13 +140,11 @@ if __name__ == '__main__':
         try:
             d = generator.run()
             ts = time.time()
-            st = datetime.datetime.fromtimestamp(ts).strftime('%Y-%m-%d %H:%M:%S')
+            st = datetime.datetime.fromtimestamp(ts).strftime('%Y-%m-%d--%H:%M:%S')
             FileWriter.write_file(dirname+"/"+st+"-simulated-"+str(i), d)
             i += 1
         except:
-            cfg['Logging']['system_logger'].exception('Exception in Generation process!')
             errors += 1
         print i
-        print "Errors:", errors
     print "Errors:", errors
     print "."
