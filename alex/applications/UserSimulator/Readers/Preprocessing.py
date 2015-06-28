@@ -164,7 +164,7 @@ class Preprocessing:
             if dai.dat == 'apology':
                 return da
             elif (dai.dat == 'inform' and
-                          dai.name == 'vehicle'):
+                 (dai.name == 'vehicle' or dai.name == 'walk_to') ):
                 new_da.append(Preprocessing.connection_info_da)
                 return new_da
             else:

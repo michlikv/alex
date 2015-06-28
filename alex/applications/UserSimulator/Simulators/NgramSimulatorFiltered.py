@@ -4,6 +4,7 @@
 from __future__ import unicode_literals
 from alex.components.slu.da import DialogueAct, DialogueActNBList
 from copy import deepcopy
+from alex.components.dm import Ontology
 
 from simulator import Simulator
 from Readers.FileReader import FileReader
@@ -18,11 +19,11 @@ class NgramSimulatorFilterSlots(Simulator):
         pass
 
     def __init__(self, cfg):
-        # todo N will be in  CFG?.
         self.cfg = cfg
         self.n = 2
         self.simulator = NgramsTrained(self.n)
         self.slotvals = NgramsTrained(2)
+        self.ontology = Ontology(cfg['UserSimulation']['ontology'])
 
         self.uniform_counter = 0
         self.found_counter = 0
@@ -50,10 +51,18 @@ class NgramSimulatorFilterSlots(Simulator):
                     # save slot values
                     slot_values = Preprocessing.get_slot_names_plus_values_from_dialogue(dialogue,
                                                                                          ignore_values=['none', '*'])
+
+                    for i,da in enumerate(dialogue):
+                        for dai in da:
+                            if dai.name and dai.name == 'vehicle':
+                                break
+                            if dai.name and dai.name == 'walk_to':
+                                pass
+
                     # remove slot values
                     Preprocessing.remove_slot_values_from_dialogue(dialogue)
 
-                    dialogue = [Preprocessing.shorten_connection_info(a) for a in dialogue]
+                    dialogue = [Preprocessing.shorten_connection_info(a) if i % 2 == 0 else a for i, a in enumerate(dialogue)]
 
                     self.simulator.train_counts(dialogue)
 
@@ -107,16 +116,25 @@ class NgramSimulatorFilterSlots(Simulator):
 
         for dai in response.dais:
             if dai.value:
-                possible_values = self.slotvals.get_possible_reactions((dai.name,))
-                if not possible_values:
-                    #possible_values = self.slotvals.get_possible_unigrams()
-                    print "No SLOT VALUE FOR SLOT NAME:", dai.name
-                    raise
+                if "city" in dai.name or "stop" in dai.name:
+                    possible_values = list(self.ontology['slots'][dai.name])
+                    if not possible_values:
+                        #possible_values = self.slotvals.get_possible_unigrams()
+                        print "No SLOT VALUE FOR SLOT NAME:", dai.name
+                        raise
+                    else:
+                        selected = RandomGenerator.generate_random_response_uniform(possible_values)
                 else:
-                    selected = RandomGenerator.generate_random_response(possible_values[0],
-                                                                    possible_values[1],
-                                                                    possible_values[2])
-                    dai.value = selected
+                    possible_values = self.slotvals.get_possible_reactions((dai.name,))
+                    if not possible_values:
+                        #possible_values = self.slotvals.get_possible_unigrams()
+                        print "No SLOT VALUE FOR SLOT NAME:", dai.name
+                        raise
+                    else:
+                        selected = RandomGenerator.generate_random_response(possible_values[0],
+                                                                        possible_values[1],
+                                                                        possible_values[2])
+                dai.value = selected
             new_resp.append(dai)
         if len(new_resp) == 0:
             new_resp = DialogueAct('null()')
