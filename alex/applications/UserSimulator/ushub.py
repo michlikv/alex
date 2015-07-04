@@ -127,10 +127,11 @@ if __name__ == '__main__':
 
     generator = Generator(cfg)
     num_iter = args.num
+    num_iter = 10
 
     ts = time.time()
     st = datetime.datetime.fromtimestamp(ts).strftime('%Y-%m-%d--%H:%M:%S')
-    dirname = "simulated/"+st+"-sim-"+cfg['UserSimulation']['type']
+    dirname = "simulated/"+st+"-sim-"+cfg['UserSimulation']['short_name']
     if not os.path.exists(dirname):
         os.makedirs(dirname)
 

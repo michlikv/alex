@@ -119,6 +119,10 @@ class Eval:
         user = self.stats.user_acts_count + 0.0
         system_user_ratio['TEST'] = [system/(system+user), user/(system+user)]
 
+        Draw_plots.print_lengths_tofile(self.stats.system_acts, self.stats.i_dial_count, self.dirname+"/TEST_system_act_count.txt")
+        Draw_plots.print_lengths_tofile(self.stats.user_acts, self.stats.i_dial_count, self.dirname+"/TEST_user_act_count.txt")
+
+
         for name, simulator in self.simulators.iteritems():
             filename_sim = simulator['data']
             stats_sim = simulator['stats']
@@ -136,8 +140,8 @@ class Eval:
             user = stats_sim.user_acts_count + 0.0
             system_user_ratio[name] = [system/(system+user), user/(system+user)]
 
-            Draw_plots.print_lengths_tofile(stats_sim.system_acts, stats_sim.i_dial_count, name+"_system_act_count.txt")
-            Draw_plots.print_lengths_tofile(stats_sim.user_acts, stats_sim.i_dial_count, name+"_user_act_count.txt")
+            Draw_plots.print_lengths_tofile(stats_sim.system_acts, stats_sim.i_dial_count, self.dirname+"/"+ name+"_system_act_count.txt")
+            Draw_plots.print_lengths_tofile(stats_sim.user_acts, stats_sim.i_dial_count, self.dirname+"/"+name+"_user_act_count.txt")
 
         # dialogue lengths
         Draw_plots.count_length_stats(dial_lengths, self.dirname+"/dialogue-length.txt")
@@ -188,7 +192,6 @@ class Eval:
             dialogue = Preprocessing.prepare_conversations(dialogue,
                 Preprocessing.create_act_from_stack_use_last,
                 Preprocessing.create_act_from_stack_use_last)
-            Preprocessing.add_end_string(dialogue)
             Preprocessing.clear_numerics(dialogue)
             dialogue = [DialogueAct(d) for d in dialogue]
         return dialogue

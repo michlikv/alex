@@ -27,8 +27,8 @@ class DDDSTracker(DialogueState):
         self.user_request_history_slots = defaultdict(D3DiscreteValue)
         # uch_ prefix
         self.user_confirm_history_slots = defaultdict(D3DiscreteValue)
-        # ush_ prefix
-        self.user_select_history_slots = defaultdict(D3DiscreteValue)
+        # # ush_ prefix
+        # self.user_select_history_slots = defaultdict(D3DiscreteValue)
 
         self.system_slots = defaultdict(D3DiscreteValue)
         # structures for remembering system dialogue acts
@@ -56,7 +56,7 @@ class DDDSTracker(DialogueState):
         self.all_lists = [self.user_slots,
                           self.user_request_history_slots,
                           self.user_confirm_history_slots,
-                          self.user_select_history_slots,
+                          #self.user_select_history_slots,
                           self.system_slots,
                           self.system_request_history_slots,
                           self.system_confirm_history_slots,
@@ -168,7 +168,7 @@ class DDDSTracker(DialogueState):
         self.user_slots = defaultdict(D3DiscreteValue)
         self.user_request_history_slots.clear()
         self.user_confirm_history_slots.clear()
-        self.user_select_history_slots.clear()
+        #self.user_select_history_slots.clear()
         self.system_slots.clear()
         self.system_request_history_slots.clear()
         self.system_confirm_history_slots.clear()
@@ -252,7 +252,6 @@ class DDDSTracker(DialogueState):
             self.system_logger.debug(unicode(self))
 
     def is_connection_info_consistent(self, da):
-        #todo is connection info ok with user values?
         has_er = False
 
         #check alternatives
@@ -313,6 +312,11 @@ class DDDSTracker(DialogueState):
         from_city = self.user_slots['from_city'].mph()[1] if 'from_city' in self.user_slots else None
         to_stop = self.user_slots['to_stop'].mph()[1] if 'to_stop' in self.user_slots else None
         to_city = self.user_slots['to_city'].mph()[1] if 'to_city' in self.user_slots else None
+
+        if from_stop is None and from_city is None:
+            has_er = True
+        if to_stop is None and to_city is None:
+            has_er = True
 
         if not self._is_compatible_stops(said_from_stop, walkto_from, from_stop, from_city):
             has_er = True
@@ -377,26 +381,6 @@ class DDDSTracker(DialogueState):
 
         return old_user_da
 
-    # def last_talked_about(self, user_da, system_da):
-    #     """This adds dialogue act items to support inference of the last slots the user talked about."""
-    #     old_user_da = deepcopy(user_da)
-    #     new_user_da = DialogueActConfusionNetwork()
-    #
-    #     for prob, user_dai in user_da:
-    #         new_user_dais = []
-    #         lta_tsvs = self.ontology.last_talked_about(user_dai.dat, user_dai.name, user_dai.value)
-    #
-    #         for name, value in lta_tsvs:
-    #             new_user_dais.append(DialogueActItem("inform", name, value))
-    #
-    #         if new_user_dais:
-    #             for nudai in new_user_dais:
-    #                 new_user_da.add(prob, nudai)
-    #
-    #     old_user_da.extend(new_user_da)
-    #
-    #     return old_user_da
-
     def state_update(self, user_da, system_da):
         """Records the information provided by the system and by the user."""
 
@@ -447,9 +431,9 @@ class DDDSTracker(DialogueState):
             elif dai.dat == "confirm":
                 self.user_confirm_history_slots["uch_" + dai.name].scale(weight)
                 self.user_confirm_history_slots["uch_" + dai.name].add(dai.value, prob)
-            elif dai.dat == "select":
-                self.user_select_history_slots["ush_" + dai.name].scale(weight)
-                self.user_select_history_slots["ush_" + dai.name].add(dai.value, prob)
+            # elif dai.dat == "select":
+            #     self.user_select_history_slots["ush_" + dai.name].scale(weight)
+            #     self.user_select_history_slots["ush_" + dai.name].add(dai.value, prob)
             elif dai.dat in set(["ack", "apology", "bye", "hangup", "hello", "help", "null", "other",
                              "repeat", "reqalts", "reqmore", "restart", "thankyou"]):
                 self.ludait.scale(weight)
@@ -472,16 +456,16 @@ class DDDSTracker(DialogueState):
                 if dai.dat == "inform":
                     # set that the system already informed about the slot
                     self.user_request_history_slots["urh_" + dai.name].set({"system-informed": 1.0, })
-                    self.user_confirm_history_slots["uch_" + dai.name].set({"system-informed": 1.0, })
-                    self.user_select_history_slots["ush_" + dai.name].set({"system-informed": 1.0, })
+                    #self.user_confirm_history_slots["uch_" + dai.name].set({"system-informed": 1.0, })
+                    #self.user_select_history_slots["ush_" + dai.name].set({"system-informed": 1.0, })
                     if dai.value:
                         self.system_informed_slots["sih_" + dai.name].add(dai.value, 1.0)
 
                 if dai.dat == "iconfirm" or dai.dat == "confirm":
                     # set that the system already informed about the slot
                     self.user_request_history_slots["urh_" + dai.name].set({"system-informed": 1.0, })
-                    self.user_confirm_history_slots["uch_" + dai.name].set({"system-informed": 1.0, })
-                    self.user_select_history_slots["ush_" + dai.name].set({"system-informed": 1.0, })
+                    #self.user_confirm_history_slots["uch_" + dai.name].set({"system-informed": 1.0, })
+                    #self.user_select_history_slots["ush_" + dai.name].set({"system-informed": 1.0, })
                     if dai.value:
                         self.system_confirm_history_slots["sch_" + dai.name].scale(weight)
                         self.system_confirm_history_slots["sch_" + dai.name].add(dai.value, 1.0)
@@ -495,188 +479,193 @@ class DDDSTracker(DialogueState):
                     self.system_request_history_slots["srh_" + dai.name].add('system-requested', 1.0)
 
                 if dai.dat == "help":
-                    if dai.name and dai.value:
+                    if dai.name:
                         self.system_slots["help_"+dai.name].scale(weight)
-                        self.system_slots["help_"+dai.name].add(dai.value, prob)
+                        if dai.value:
+                            self.system_slots["help_"+dai.name].add(dai.value, prob)
+                        else:
+                            self.system_slots["help_"+dai.name].add("noval", prob)
+                    else:
+                        self.lsdait.set({dai.dat: prob, })
 
                 elif dai.dat in set(["silence", "apology", "bye", "hangup", "hello", "null", "other",
                              "irepeat", "notunderstood", "reqmore", "restart" ]):
                     self.lsdait.set({dai.dat: prob, })
 
-    def get_slots_being_requested(self, req_prob=0.8):
-        """Return all slots which are currently being requested by the user along with the correct value."""
-        requested_slots = {}
+    # def get_slots_being_requested(self, req_prob=0.8):
+    #     """Return all slots which are currently being requested by the user along with the correct value."""
+    #     requested_slots = {}
+    #
+    #     for slot in self.user_request_history_slots:
+    #         if isinstance(self.user_request_history_slots[slot], D3DiscreteValue) and slot.startswith("urh_"):
+    #
+    #             if self.user_slots[slot]["user-requested"] > req_prob:
+    #                 if slot[3:] in self.user_slots:
+    #                     requested_slots[slot[3:]] = self.user_slots[slot[3:]]
+    #                 else:
+    #                     requested_slots[slot[3:]] = "none"
+    #
+    #     return requested_slots
 
-        for slot in self.user_request_history_slots:
-            if isinstance(self.user_request_history_slots[slot], D3DiscreteValue) and slot.startswith("urh_"):
+    # def get_slots_being_confirmed(self, conf_prob=0.8):
+    #     """Return all slots which are currently being confirmed by the user along with the value being confirmed."""
+    #     confirmed_slots = {}
+    #
+    #     for slot in self.user_confirm_history_slots:
+    #         if isinstance(self.user_slots[slot], D3DiscreteValue) and slot.startswith("uch_"):
+    #             prob, value = self.user_slots[slot].mph()
+    #             if value not in ['none', 'system-informed', None] and prob > conf_prob:
+    #                 confirmed_slots[slot[3:]] = self.user_slots[slot[3:]]
+    #
+    #     return confirmed_slots
 
-                if self.user_slots[slot]["user-requested"] > req_prob:
-                    if slot[3:] in self.user_slots:
-                        requested_slots[slot[3:]] = self.user_slots[slot[3:]]
-                    else:
-                        requested_slots[slot[3:]] = "none"
+    # def get_slots_being_noninformed(self, noninf_prob=0.8):
+    #     """Return all slots provided by the user and the system has not informed about them yet along with
+    #     the value of the slot.
+    #
+    #     This will not detect a change in a goal. For example::
+    #
+    #         U: I want a Chinese restaurant.
+    #         S: Ok, you want a Chinese restaurant. What price range you have in mind?
+    #         U: Well, I would rather want an Italian Restaurant.
+    #         S: Ok, no problem. You want an Italian restaurant. What price range you have in mind?
+    #
+    #     Because the system informed about the food type and stored "system-informed", then
+    #     we will not notice that we confirmed a different food type.
+    #     """
+    #     noninformed_slots = {}
+    #
+    #     for slot in self.user_slots:
+    #         if not isinstance(self.user_slots[slot], D3DiscreteValue):
+    #             continue
+    #
+    #         # test whether the slot is not currently requested
+    #         if "urh_" + slot not in self.user_request_history_slots or self.user_request_history_slots["urh_" + slot]["none"] > 0.999:
+    #             prob, value = self.user_slots[slot].mph()
+    #             # test that the non informed value is an interesting value
+    #             if value not in ['none', None] and prob > noninf_prob:
+    #                 noninformed_slots[slot] = self.user_slots[slot]
+    #
+    #     return noninformed_slots
 
-        return requested_slots
+    # def get_accepted_slots(self, acc_prob):
+    #     """Returns all slots which have a probability of a non "none" value larger then some threshold.
+    #     """
+    #     accepted_slots = {}
+    #
+    #     for slot in self.user_slots:
+    #         if not isinstance(self.user_slots[slot], D3DiscreteValue):
+    #             continue
+    #
+    #         prob, value = self.user_slots[slot].mph()
+    #         if value not in ['none', 'system-informed', None] and prob >= acc_prob:
+    #             accepted_slots[slot] = self.user_slots[slot]
+    #
+    #     return accepted_slots
 
-    def get_slots_being_confirmed(self, conf_prob=0.8):
-        """Return all slots which are currently being confirmed by the user along with the value being confirmed."""
-        confirmed_slots = {}
+    # def get_slots_tobe_confirmed(self, min_prob, max_prob):
+    #     """Returns all slots which have a probability of a non "none" value larger then some threshold and still not so
+    #     large to be considered as accepted.
+    #     """
+    #     tobe_confirmed_slots = {}
+    #
+    #     for slot in self.user_slots:
+    #         if not isinstance(self.user_slots[slot], D3DiscreteValue):
+    #             continue
+    #
+    #         prob, value = self.user_slots[slot].mph()
+    #         if value not in ['none', 'system-informed', None] and min_prob <= prob and prob < max_prob:
+    #             tobe_confirmed_slots[slot] = self.user_slots[slot]
+    #
+    #     return tobe_confirmed_slots
 
-        for slot in self.user_confirm_history_slots:
-            if isinstance(self.user_slots[slot], D3DiscreteValue) and slot.startswith("uch_"):
-                prob, value = self.user_slots[slot].mph()
-                if value not in ['none', 'system-informed', None] and prob > conf_prob:
-                    confirmed_slots[slot[3:]] = self.user_slots[slot[3:]]
+    # def get_slots_tobe_selected(self, sel_prob):
+    #     """Returns all slots which have a probability of the two most probable non "none" value larger then some threshold.
+    #     """
+    #     tobe_selected_slots = {}
+    #
+    #     for slot in self.user_slots:
+    #         if not isinstance(self.user_slots[slot], D3DiscreteValue):
+    #             continue
+    #
+    #         (prob1, value1), (prob2, value2) = self.user_slots[slot].tmphs()
+    #
+    #         if value1 not in ['none', 'system-informed', None] and prob1 > sel_prob and \
+    #             value2 not in ['none', 'system-informed', None] and prob2 > sel_prob:
+    #             tobe_selected_slots[slot] = self.user_slots[slot]
+    #
+    #     return tobe_selected_slots
 
-        return confirmed_slots
+    # def get_changed_slots(self, cha_prob):
+    #     """Returns all slots that have changed from the previous turn. Because the change is determined by change in
+    #     probability for a particular value, there may be very small changes. Therefore, this will only report changes
+    #     for values with a probability larger than the given threshold.
+    #
+    #     :param cha_prob: minimum current probability of the most probable hypothesis to be reported
+    #     :rtype: dict
+    #     """
+    #     changed_slots = {}
+    #
+    #     # compare the accepted slots from the previous and the current turn
+    #     if len(self.turns) >= 2:
+    #         cur_slots = self.turns[-1][2][0]
+    #         prev_slots = self.turns[-2][2][0]
+    #
+    #         for slot in cur_slots:
+    #             if not isinstance(cur_slots[slot], D3DiscreteValue):
+    #                 continue
+    #
+    #             cur_prob, cur_value = cur_slots[slot].mph()
+    #             prev_prob, prev_value = prev_slots[slot].mph()
+    #
+    #             if cur_value not in ['none', 'system-informed', None] and cur_prob > cha_prob and \
+    #                 prev_value not in ['system-informed', None] and \
+    #                 cur_value != prev_value:
+    #                 #prev_prob > cha_prob and \ # only the current value must be accepted
+    #                 changed_slots[slot] = cur_slots[slot]
+    #
+    #         return changed_slots
+    #     elif len(self.turns) == 1:
+    #         # after the first turn all accepted slots are effectively changed
+    #         return self.get_accepted_slots(cha_prob)
+    #     else:
+    #         return {}
 
-    def get_slots_being_noninformed(self, noninf_prob=0.8):
-        """Return all slots provided by the user and the system has not informed about them yet along with
-        the value of the slot.
-
-        This will not detect a change in a goal. For example::
-
-            U: I want a Chinese restaurant.
-            S: Ok, you want a Chinese restaurant. What price range you have in mind?
-            U: Well, I would rather want an Italian Restaurant.
-            S: Ok, no problem. You want an Italian restaurant. What price range you have in mind?
-
-        Because the system informed about the food type and stored "system-informed", then
-        we will not notice that we confirmed a different food type.
-        """
-        noninformed_slots = {}
-
-        for slot in self.user_slots:
-            if not isinstance(self.user_slots[slot], D3DiscreteValue):
-                continue
-
-            # test whether the slot is not currently requested
-            if "urh_" + slot not in self.user_request_history_slots or self.user_request_history_slots["urh_" + slot]["none"] > 0.999:
-                prob, value = self.user_slots[slot].mph()
-                # test that the non informed value is an interesting value
-                if value not in ['none', None] and prob > noninf_prob:
-                    noninformed_slots[slot] = self.user_slots[slot]
-
-        return noninformed_slots
-
-    def get_accepted_slots(self, acc_prob):
-        """Returns all slots which have a probability of a non "none" value larger then some threshold.
-        """
-        accepted_slots = {}
-
-        for slot in self.user_slots:
-            if not isinstance(self.user_slots[slot], D3DiscreteValue):
-                continue
-
-            prob, value = self.user_slots[slot].mph()
-            if value not in ['none', 'system-informed', None] and prob >= acc_prob:
-                accepted_slots[slot] = self.user_slots[slot]
-
-        return accepted_slots
-
-    def get_slots_tobe_confirmed(self, min_prob, max_prob):
-        """Returns all slots which have a probability of a non "none" value larger then some threshold and still not so
-        large to be considered as accepted.
-        """
-        tobe_confirmed_slots = {}
-
-        for slot in self.user_slots:
-            if not isinstance(self.user_slots[slot], D3DiscreteValue):
-                continue
-
-            prob, value = self.user_slots[slot].mph()
-            if value not in ['none', 'system-informed', None] and min_prob <= prob and prob < max_prob:
-                tobe_confirmed_slots[slot] = self.user_slots[slot]
-
-        return tobe_confirmed_slots
-
-    def get_slots_tobe_selected(self, sel_prob):
-        """Returns all slots which have a probability of the two most probable non "none" value larger then some threshold.
-        """
-        tobe_selected_slots = {}
-
-        for slot in self.user_slots:
-            if not isinstance(self.user_slots[slot], D3DiscreteValue):
-                continue
-
-            (prob1, value1), (prob2, value2) = self.user_slots[slot].tmphs()
-
-            if value1 not in ['none', 'system-informed', None] and prob1 > sel_prob and \
-                value2 not in ['none', 'system-informed', None] and prob2 > sel_prob:
-                tobe_selected_slots[slot] = self.user_slots[slot]
-
-        return tobe_selected_slots
-
-    def get_changed_slots(self, cha_prob):
-        """Returns all slots that have changed from the previous turn. Because the change is determined by change in
-        probability for a particular value, there may be very small changes. Therefore, this will only report changes
-        for values with a probability larger than the given threshold.
-
-        :param cha_prob: minimum current probability of the most probable hypothesis to be reported
-        :rtype: dict
-        """
-        changed_slots = {}
-
-        # compare the accepted slots from the previous and the current turn
-        if len(self.turns) >= 2:
-            cur_slots = self.turns[-1][2][0]
-            prev_slots = self.turns[-2][2][0]
-
-            for slot in cur_slots:
-                if not isinstance(cur_slots[slot], D3DiscreteValue):
-                    continue
-
-                cur_prob, cur_value = cur_slots[slot].mph()
-                prev_prob, prev_value = prev_slots[slot].mph()
-
-                if cur_value not in ['none', 'system-informed', None] and cur_prob > cha_prob and \
-                    prev_value not in ['system-informed', None] and \
-                    cur_value != prev_value:
-                    #prev_prob > cha_prob and \ # only the current value must be accepted
-                    changed_slots[slot] = cur_slots[slot]
-
-            return changed_slots
-        elif len(self.turns) == 1:
-            # after the first turn all accepted slots are effectively changed
-            return self.get_accepted_slots(cha_prob)
-        else:
-            return {}
-
-    def state_changed(self, cha_prob):
-        """Returns a boolean indicating whether the dialogue state changed significantly
-        since the last turn. True is returned if at least one slot has at least one value
-        whose probability has changed at least by the given threshold since last time.
-
-        :param cha_prob: minimum probability change to be reported
-        :rtype: Boolean
-        """
-        if len(self.turns) >= 2:
-            cur_all_slots = self.turns[-1][2]
-            prev_all_slots = self.turns[-2][2]
-
-            for cur_slots,prev_slots in zip(cur_all_slots, prev_all_slots):
-                for slot in cur_slots:
-                    if not isinstance(cur_slots[slot], D3DiscreteValue):
-                        continue
-
-                    for value, cur_prob in cur_slots[slot].items():
-                        if value in ['none', 'system-informed', None]:
-                            continue
-                        prev_prob = prev_slots[slot].get(value, 0.0)
-                        if abs(cur_prob - prev_prob) > cha_prob:
-                            return True
-        elif len(self.turns) == 1:
-            slots = self.turns[-1][2]
-            for slot in slots:
-                if not isinstance(slots[slot], D3DiscreteValue):
-                    continue
-                prob, value = slots[slot].mph()
-                if value in ['none', 'system-informed', None]:
-                    continue
-                if prob > cha_prob:
-                    return True
-            pass
-        return False
+    # def state_changed(self, cha_prob):
+    #     """Returns a boolean indicating whether the dialogue state changed significantly
+    #     since the last turn. True is returned if at least one slot has at least one value
+    #     whose probability has changed at least by the given threshold since last time.
+    #
+    #     :param cha_prob: minimum probability change to be reported
+    #     :rtype: Boolean
+    #     """
+    #     if len(self.turns) >= 2:
+    #         cur_all_slots = self.turns[-1][2]
+    #         prev_all_slots = self.turns[-2][2]
+    #
+    #         for cur_slots,prev_slots in zip(cur_all_slots, prev_all_slots):
+    #             for slot in cur_slots:
+    #                 if not isinstance(cur_slots[slot], D3DiscreteValue):
+    #                     continue
+    #
+    #                 for value, cur_prob in cur_slots[slot].items():
+    #                     if value in ['none', 'system-informed', None]:
+    #                         continue
+    #                     prev_prob = prev_slots[slot].get(value, 0.0)
+    #                     if abs(cur_prob - prev_prob) > cha_prob:
+    #                         return True
+    #     elif len(self.turns) == 1:
+    #         slots = self.turns[-1][2]
+    #         for slot in slots:
+    #             if not isinstance(slots[slot], D3DiscreteValue):
+    #                 continue
+    #             prob, value = slots[slot].mph()
+    #             if value in ['none', 'system-informed', None]:
+    #                 continue
+    #             if prob > cha_prob:
+    #                 return True
+    #         pass
+    #     return False
 
 
     def _hash_values(self, hash):
@@ -748,6 +737,8 @@ class DDDSTracker(DialogueState):
 
         # get compatible values
         if "city" in slot_name or "stop" in slot_name:
+
+            #resolve "from" or "to" from context
             if slot_name == "city" or slot_name == "stop":
                 dai_system = None
 
@@ -757,46 +748,58 @@ class DDDSTracker(DialogueState):
                         dai_system = dai
                         break
 
-                #if there is no request, try any slot name with substring
-                if dai_system is None:
-                    for dai in self.last_system_da:
-                        if dai.name is not None and slot_name in dai.name:
-                            dai_system = dai
-                            break
-
                 if dai_system is not None and dai_system.name in self.user_slots:
-                    return [self.user_slots[dai_system.name].mph()[1]]
-                else:
-                    return None
+                    slot_name = dai_system.name
+
+                # if dai_system is None:
+                #     for dai in self.last_system_da:
+                #         if dai.name is not None and slot_name in dai.name:
+                #             dai_system = dai
+                #             break
 
             if "via" in slot_name:
                 if ( "from_city" in set_values and "to_city" in set_values and
                    set_values["from_city"] == set_values["to_city"]):
                     return [set_values["from_city"]]
-                else: #todo odvozene typy ze zastavek -- problem, muzou byt ve vice mestech, mesto ale jeste neni urceno
-                    return None
+                else:
+                    return list(self.ontology['slots'][slot_name])
 
             elif "in" in slot_name:
                 if "to_city" in set_values: # use city you travel to
                     return [set_values["to_city"]]
                 else:
-                    return None
+                    return list(self.ontology['slots'][slot_name])
 
             elif "stop" in slot_name:
+                #avoid same destination and origin
+                exclude = None
+                if slot_name == "from_stop" and "to_stop" in set_values:
+                    exclude = set_values["to_stop"]
+                elif slot_name == "to_stop" and "from_stop" in set_values:
+                    exclude = set_values["from_stop"]
+
+                # if we know from which city to go, find only compatible stops:
                 if slot_name[:-4] + "city" in set_values:
-                    return list(self.ontology.get_compatible_vals("city_stop", set_values[slot_name[:-4] + "city"]))
+                    result = list(self.ontology.get_compatible_vals("city_stop", set_values[slot_name[:-4] + "city"]))
+                    if exclude and exclude in result:
+                        result.remove(exclude)
+                    return result
+                # if no contraint on city, it can be anything
                 else:
-                    return None
+                    result = list(self.ontology['slots'][slot_name])
+                    if exclude and exclude in result:
+                        result.remove(exclude)
+                    return result
+
             elif "city" in slot_name:
                 if slot_name[:-4] + "stop" in set_values:
                     return list(self.ontology.get_compatible_vals("stop_city", set_values[slot_name[:-4] + "stop"]))
                 else:
-                    return None
+                    return list(self.ontology['slots'][slot_name])
             else:
                 return None
         else:
             return None
-
 
     def get_featurized_hash(self):
         result = defaultdict(str)
@@ -883,7 +886,7 @@ class DDDSTracker(DialogueState):
             result[slot] = val
 
         result.update(self._hash_values(self.user_confirm_history_slots))
-        result.update(self._hash_values(self.user_select_history_slots))
+        #result.update(self._hash_values(self.user_select_history_slots))
 
         # slots with prefix "srh_"
         # has only "system-requested" and "user-informed" values.
