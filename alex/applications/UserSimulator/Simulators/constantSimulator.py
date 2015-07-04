@@ -8,8 +8,12 @@ from alex.components.slu.da import DialogueAct, DialogueActNBList
 
 class ConstantSimulator(Simulator):
 
-    def __init__(self):
+    def __init__(self, cfg):
         random.seed(19910604)
+
+    @staticmethod
+    def load(cfg):
+        return ConstantSimulator(cfg)
 
     def generate_response(self, system_da):
         nblist = DialogueActNBList()
@@ -27,4 +31,15 @@ class ConstantSimulator(Simulator):
 
         return nblist.get_confnet()
 
+    def new_dialogue(self):
+        pass
+
+    def generate_response_from_history(self, history):
+        pass
+
+    def train_simulator(self, cfg):
+        pass
+
+    def save(self, cfg):
+        pass
 

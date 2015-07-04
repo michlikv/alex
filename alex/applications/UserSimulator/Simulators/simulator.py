@@ -4,10 +4,23 @@
 from __future__ import unicode_literals
 import abc
 
+
+class abstractstatic(staticmethod):
+    __slots__ = ()
+    def __init__(self, function):
+        super(abstractstatic, self).__init__(function)
+        function.__isabstractmethod__ = True
+    __isabstractmethod__ = True
+
 class Simulator(object):
     """Abstract class for user simulator."""
 
     __metaclass__ = abc.ABCMeta
+
+    @abc.abstractmethod
+    def train_simulator(self, cfg):
+        """Train simulator."""
+        raise NotImplementedError()
 
     @abc.abstractmethod
     def new_dialogue(self):
@@ -33,4 +46,14 @@ class Simulator(object):
             system_da: alex.components.slu.da.DialogueAct
             n-best list: alex.components.slu.da.DialogueActNBList
         """
+        raise NotImplementedError()
+
+    @abc.abstractmethod
+    def save(self, cfg):
+        """Save data of a simulator to file."""
+        raise NotImplementedError()
+
+    @abstractstatic
+    def load(cfg):
+        """  Load simulator with data data from files specified in cfg"""
         raise NotImplementedError()

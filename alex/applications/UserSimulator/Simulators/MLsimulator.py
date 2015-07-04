@@ -36,13 +36,6 @@ class MLsimulator(Simulator):
         self.luda = DialogueAct('silence()')
         self.tracker = Tracker.Tracker(self.cfg)
 
-        self._do_error_model = 'ErrorModel' in self.cfg['UserSimulation']
-        self._mess_dai_rate = 0.0
-        self._mess_slotval_rate = 0.0
-        if self._do_error_model:
-            self._mess_dai_rate = self.cfg['UserSimulation']['ErrorModel']['daiRate']
-            self._mess_slotval_rate = self.cfg['UserSimulation']['ErrorModel']['slotValRate']
-
         RandomGenerator()
 
     def get_luda_nblist(self):
@@ -150,7 +143,9 @@ class MLsimulator(Simulator):
 
         return vectors_train, classes_train, vectors_test, classes_test
 
-    def train_simulator(self, cfg, create_vectors=False):
+    def train_simulator(self, cfg):
+        create_vectors = True
+
         if create_vectors:
             self.vectors_train, self.classes_train, self.vectors_test, self.classes_test = self._create_feature_vectors(cfg)
         else:
@@ -289,7 +284,7 @@ class MLsimulator(Simulator):
         sizes = []
         for name, cl in classes_train.iteritems():
             sizes.append(name + ' ' + str(sum(cl)))
-        FileWriter.write_file('data/classes-sizes.txt', sizes)
+        FileWriter.write_file(self.cfg['UserSimulation']['files']['classes_names'], sizes)
 
     def _sample_response(self, vector):
         """
