@@ -15,7 +15,7 @@ from alex.components.slu.da import DialogueAct, DialogueActItem, DialogueActNBLi
 
 class DDDSTracker(DialogueState):
     """
-    State tracker fo user simulator.
+    State tracker for user simulator.
     """
 
     def __init__(self, cfg, ontology):

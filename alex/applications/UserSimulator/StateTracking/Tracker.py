@@ -4,6 +4,7 @@ from __future__ import unicode_literals
 from alex.components.dm import Ontology
 from alex.components.slu.da import DialogueActConfusionNetwork
 from TrackerDDDState import DDDSTracker
+from factory import tracker_factory
 
 class Tracker:
 
@@ -13,7 +14,8 @@ class Tracker:
         self.ontology = Ontology(cfg['UserSimulation']['ontology'])
         self.use_log = 'log' in cfg['UserSimulation'] and cfg['UserSimulation']['log']
         # self.dialogue_state = self.dialogue_state_class(cfg, self.ontology)
-        self.dialogue_state = DDDSTracker(cfg, self.ontology)
+        self.dialogue_state = tracker_factory(cfg, self.ontology)
+        #self.dialogue_state = DDDSTracker(cfg, self.ontology)
 
     def update_state(self, user_da, system_da):
         cn = DialogueActConfusionNetwork().make_from_da(user_da)
