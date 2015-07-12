@@ -35,8 +35,12 @@ class NgramsTrained(TrainedStructure):
     # or null if history is unknown
     def get_possible_reactions(self, hist):
         if self._structure.get(hist, None):
-            vals = self._structure[hist].values()
-            return self._structure[hist].keys(), vals, sum(vals)
+            keys = []
+            vals = []
+            for k, v in self._structure[hist].iteritems():
+                keys.append(k)
+                vals.append(v)
+            return keys, vals, sum(vals)
         else:
             return None, [], []
 
@@ -52,8 +56,12 @@ class NgramsTrained(TrainedStructure):
     # or none if empty
     def get_possible_unigrams(self):
         if len(self._structure_unigrams.items()) != 0:
-            vals = self._structure_unigrams.values()
-            return self._structure_unigrams.keys(), vals, sum(vals)
+            keys = []
+            vals = []
+            for k, v in self._structure_unigrams.iteritems():
+                keys.append(k)
+                vals.append(v)
+            return keys, vals, sum(vals)
         else:
             return None
 

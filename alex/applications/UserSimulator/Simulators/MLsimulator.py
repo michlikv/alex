@@ -368,8 +368,7 @@ class MLsimulator(Simulator):
 
                         if not possible_values:
                             #possible_values, v, s = self.slotvals.get_possible_unigrams()
-                            print "No SLOT VALUE FOR SLOT NAME:", dai.name
-                            raise
+                            raise ValueError('No slot value for slot name:', dai.name)
                     selected = RandomGenerator.generate_random_response_uniform(possible_values)
                 dai.value = selected
 

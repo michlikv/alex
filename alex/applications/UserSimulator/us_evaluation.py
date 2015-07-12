@@ -146,45 +146,51 @@ class Eval:
         # dialogue lengths
         Draw_plots.count_length_stats(dial_lengths, self.dirname+"/dialogue-length.txt")
         Draw_plots.plot_mean_lengths_stats(dial_lengths, self.dirname + "/dialogue-lengths.png", "Dialogue Lengths")
-        Draw_plots.plot_histogram_lines(dial_lengths, self.dirname + "/dial-lengths-hist.png", title="Dialogue Lengths")
+        Draw_plots.plot_histogram_lines(dial_lengths, self.dirname + "/dial-lengths-hist.png", title="Dialogue Lengths",
+                                        xlabel="Turns", ylabel="Amount of dialogues")
         #Draw_plots.plot_histograms_pointy(dial_lengths, self.dirname + "/dial-lengths-hist.png", "Dialogue Lengths", 15)
 
         # turn lengths
         Draw_plots.count_length_stats(turn_lengths, self.dirname+"/turn-length.txt")
         Draw_plots.plot_mean_lengths_stats(turn_lengths, self.dirname + "/turn-lengths.png", "Turn Lengths")
-        Draw_plots.plot_histogram_lines(turn_lengths, self.dirname + "/turn-lengths-hist.png", title="Turn Lengths")
+        Draw_plots.plot_histogram_lines(turn_lengths, self.dirname + "/turn-lengths-hist.png", title="Turn Lengths",
+                                        xlabel="Dialogue act items", ylabel="Amount of dialogues")
         #Draw_plots.plot_histograms_pointy(turn_lengths, self.dirname + "/turn-lengths-hist.png", "Turn Lengths", 15)
 
         Draw_plots.count_length_stats(user_turn_lengths, self.dirname+"/user-turn-length.txt")
         Draw_plots.plot_mean_lengths_stats(user_turn_lengths, self.dirname + "/user-turn-lengths.png", "User Turn Lengths")
-        Draw_plots.plot_histogram_lines(user_turn_lengths, self.dirname + "/user-turn-lengths-hist.png", title="User Turn Lengths")
+        Draw_plots.plot_histogram_lines(user_turn_lengths, self.dirname + "/user-turn-lengths-hist.png", title="User Turn Lengths",
+                                        xlabel="Dialogue act items", ylabel="Amount of dialogues")
 
         Draw_plots.count_length_stats(short_turn_lengths, self.dirname+"/short-turn-length.txt")
         Draw_plots.plot_mean_lengths_stats(short_turn_lengths, self.dirname + "/short-turn-lengths.png", "Shortened Turn Lengths")
-        Draw_plots.plot_histogram_lines(short_turn_lengths, self.dirname + "/short-turn-lengths-hist.png", title="Shortened Turn Lengths")
+        Draw_plots.plot_histogram_lines(short_turn_lengths, self.dirname + "/short-turn-lengths-hist.png", title="Shortened Turn Lengths",
+                                        xlabel="Dialogue act items", ylabel="Amount of dialogues")
 
         Draw_plots.count_length_stats_nonzero(num_con_info, self.dirname+"/num_con_info.txt")
         Draw_plots.plot_mean_lengths_stats_nonzero(num_con_info, self.dirname + "/num_con_info_bars.png", "Number of connection info per dialogue")
-        Draw_plots.plot_histogram_lines(num_con_info, self.dirname + "/num_con_info.png", title="Number of connection info per dialogue")
+        Draw_plots.plot_histogram_lines(num_con_info, self.dirname + "/num_con_info.png", title="Number of connection info per dialogue",
+                                        xlabel="Connection information", ylabel="Amount of dialogues")
 
         Draw_plots.count_length_stats_nonzero(num_uniq_con_info, self.dirname+"/num_uniq_con_info.txt")
         Draw_plots.plot_mean_lengths_stats_nonzero(num_uniq_con_info, self.dirname + "/num_uniq_con_info_bars.png", "Number of unique connection info per dialogue")
-        Draw_plots.plot_histogram_lines(num_uniq_con_info, self.dirname + "/num_uniq_con_info.png", title="Number of unique connection info per dialogue")
+        Draw_plots.plot_histogram_lines(num_uniq_con_info, self.dirname + "/num_uniq_con_info.png", title="Number of unique connection info per dialogue",
+                                        xlabel="Connection information", ylabel="Amount of dialogues")
 
         Draw_plots.count_freq_stats_nonzero(num_con_info, num_apology, self.dirname+"/num_con_apo_info.txt")
 
         #todo create output
         #Draw_plots.count_length_stats(self.stats.unique_acts, self.dirname+"/Real-avg-acts.txt")
 
-        Draw_plots.plot_stacked_bar_system_user(system_user_ratio, self.dirname+"/system-user-actions.png",
-                                                "System and User Actions")
+        #Draw_plots.plot_stacked_bar_system_user(system_user_ratio, self.dirname+"/system-user-actions.png",
+        #                                        "System and User Actions")
 
-        Draw_plots.plot_bar_next_to_one_another({"madeup1": {"a": 1, "b": 5, "c": 6, 'd': 2 },
-                                                 "madeup2": {"a": 2, "b": 3, "c": 5, 'd': 2 },
-                                                 "madeup3": {"a": 3, "b": 1, "c": 4, 'd': 2 },},
-                                                ["blue", "green", "red", "yellow"],
-                                                "Bars next to each other",
-                                                self.dirname+"/picture.png")
+        #Draw_plots.plot_bar_next_to_one_another({"madeup1": {"a": 1, "b": 5, "c": 6, 'd': 2 },
+         #                                        "madeup2": {"a": 2, "b": 3, "c": 5, 'd': 2 },
+          #                                       "madeup3": {"a": 3, "b": 1, "c": 4, 'd': 2 },},
+           #                                     ["blue", "green", "red", "yellow"],
+            #                                    "Bars next to each other",
+             #                                   self.dirname+"/picture.png")
 
     def get_dialogue_from_file(self, filename):
         dialogue = FileReader.read_file(filename)
@@ -333,7 +339,7 @@ class DialogueStats:
 class Draw_plots:
 
     @staticmethod
-    def plot_histogram_lines(hash_data, filename, styles=["ro-", "bs-", "g^-", "k+-"], title=""):
+    def plot_histogram_lines(hash_data, filename, styles=["ro-", "bs-", "g^-", "k+-"], title="", xlabel="", ylabel=""):
         dataX = defaultdict(str)
         dataY = defaultdict(str)
 
@@ -347,10 +353,10 @@ class Draw_plots:
             dataX[name] = x
             dataY[name] = counts/sum(counts)
 
-        Draw_plots.plot_lines(filename, dataX, dataY, styles, title)
+        Draw_plots.plot_lines(filename, dataX, dataY, styles, title, xlabel, ylabel)
 
     @staticmethod
-    def plot_lines(filename, hash_dataX, hash_data_y, styles=["ro-", "bs-", "g^-", "k+-"], title=""):
+    def plot_lines(filename, hash_dataX, hash_data_y, styles=["ro-", "bs-", "g^-", "k+-"], title="", xlabel="", ylabel=""):
         plots = []
         minX = 0
         maxX = 0
@@ -368,8 +374,8 @@ class Draw_plots:
 
         #plt.title(title)
         plt.axis([minX, maxX, minY, maxY])
-        # plt.xlabel('')
-        # plt.ylabel('val')
+        plt.xlabel(xlabel)
+        plt.ylabel(ylabel)
         plt.legend(handles=plots)
         plt.savefig(filename)
         plt.show()

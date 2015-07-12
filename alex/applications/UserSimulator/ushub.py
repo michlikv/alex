@@ -8,12 +8,14 @@ import time
 import datetime
 import argparse
 import os.path
+import traceback
 
 from alex.components.slu.da import DialogueAct, DialogueActNBList
 from alex.components.dm.common import dm_factory, get_dm_type
 from alex.utils.config import Config
 
 from Simulators.factory import simulator_factory_load
+from ErrorModeling.factory import error_model_factory_load
 from Generators.randomGenerator import RandomGenerator
 from Readers.FileWriter import FileWriter
 
@@ -31,7 +33,11 @@ class Generator:
 
         dm_type = get_dm_type(cfg)
         self.dm = dm_factory(dm_type, cfg)
-        self._do_error_model = 'ErrorModel' in self.cfg['UserSimulation']
+
+        self._do_error_model = 'ErrorModel' in self.cfg
+        if self._do_error_model:
+            self.error_model = error_model_factory_load(cfg)
+
         RandomGenerator()
 
     def output_da(self, da):
@@ -42,10 +48,15 @@ class Generator:
         """Prints the DA n-best list to the output."""
         cfg['Logging']['system_logger'].info("User DA:"+unicode(nblist.get_best_da()))
 
+    def output_nblistEr(self, nblist):
+        """Prints the DA n-best list to the output."""
+        cfg['Logging']['system_logger'].info("User DA EM:"+unicode(nblist))
+
     def run(self, with_state=False):
         """Controls the dialogue manager and user simulator."""
         try:
             dialogue = []
+            dialogue_EM = []
 
             self.simulator.new_dialogue()
             self.dm.new_dialogue()
@@ -58,33 +69,35 @@ class Generator:
                 system_da = self.dm.da_out()
                 self.output_da(system_da)
                 dialogue.append("system: "+unicode(system_da))
-
-                if 'none' in unicode(system_da):
-                    pass
+                dialogue_EM.append("system: "+unicode(system_da))
 
 #               generate User dialogue act
                 user_nblist = self.simulator.generate_response(system_da)
                 self.output_nblist(user_nblist)
 
-                if self._do_error_model:
-                    user_nblist_clean = self.simulator.get_luda_nblist()
-                    cfg['Logging']['system_logger'].info("Real Intended DA")
-                    self.output_nblist(user_nblist_clean)
+                # use error model to mess up the dialgue act
+                if self._do_error_model and self.error_model:
+                    us_list = self.error_model.change_da(user_nblist)
+                    self.output_nblistEr(us_list)
+                    dialogue_EM.append("user: "+unicode(us_list.get_best_da_hyp()))
                 else:
-                    user_nblist_clean = user_nblist
+                    us_list = user_nblist
 
 #               pass it to the dialogue manager
-                self.dm.da_in(user_nblist)
+                self.dm.da_in(us_list)
 
-                dialogue.append("user: "+unicode(user_nblist_clean.get_best_da()))
+                dialogue.append("user: "+unicode(user_nblist.get_best_da()))
 
                 if with_state:
                     dialogue.append("\n"+self.simulator.get_state().unicode_state()+"\n")
 
-            return dialogue
-        except:
+            if not self._do_error_model:
+                dialogue_EM = None
+            return dialogue, dialogue_EM
+        except Exception, e:
             self.cfg['Logging']['system_logger'].exception(dialogue)
             self.cfg['Logging']['system_logger'].exception('Uncaught exception in Generation process.')
+            self.cfg['Logging']['system_logger'].exception(e)
             raise
 
 #########################################################################
@@ -127,7 +140,7 @@ if __name__ == '__main__':
 
     generator = Generator(cfg)
     num_iter = args.num
-    num_iter = 10
+    #num_iter = 10
 
     ts = time.time()
     st = datetime.datetime.fromtimestamp(ts).strftime('%Y-%m-%d--%H:%M:%S')
@@ -139,13 +152,17 @@ if __name__ == '__main__':
     errors = 0
     while i <= num_iter:
         try:
-            d = generator.run()
+            d, e = generator.run()
             ts = time.time()
             st = datetime.datetime.fromtimestamp(ts).strftime('%Y-%m-%d--%H:%M:%S')
             FileWriter.write_file(dirname+"/"+st+"-simulated-"+str(i), d)
+            if e:
+                FileWriter.write_file(dirname+"/"+st+"-simulated-"+str(i)+"with_er", e)
             i += 1
-        except:
+        except Exception, e:
             errors += 1
+            print "EXCEPTION:", e
+            traceback.print_exc()
         print i
     print "Errors:", errors
     print "."
