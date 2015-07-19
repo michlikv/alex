@@ -38,7 +38,10 @@ class Tracker:
         return self.dialogue_state.get_featurized_hash()
 
     def get_value_said_system(self, slot):
-        return  self.dialogue_state.get_value_said_system(slot)
+        return self.dialogue_state.get_value_said_system(slot)
+
+    def is_connection_correct(self):
+        return self.dialogue_state.is_connection_correct()
 
     def get_value_said_user(self, slot):
         return  self.dialogue_state.get_value_said_user(slot)

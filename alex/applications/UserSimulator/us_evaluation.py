@@ -26,7 +26,7 @@ from Generators.randomGenerator import RandomGenerator
 from Readers.FileReader import FileReader
 from Readers.FileWriter import FileWriter
 from Readers.Preprocessing import Preprocessing
-
+from StateTracking.Tracker import Tracker
 
 class Eval:
 
@@ -36,10 +36,10 @@ class Eval:
         #load simulator
         self.simulators = defaultdict(lambda: defaultdict(str))
         for name, data in simulator_configs.iteritems():
-            self.simulators[name]['stats'] = DialogueStats(data[0])
+            self.simulators[name]['stats'] = DialogueStats(cfg, data[0])
             self.simulators[name]['data'] = data[1]
 
-        self.stats = DialogueStats()
+        self.stats = DialogueStats(cfg)
         self.test_dialogues = []
 
         #load DM
@@ -114,13 +114,20 @@ class Eval:
         num_apology = defaultdict(str)
         num_apology['TEST'] = self.stats.nums_apology
 
+        num_correct = defaultdict(str)
+        num_correct['TEST'] = self.stats.nums_correct
+
+        num_incorrect = defaultdict(str)
+        num_incorrect['TEST'] = self.stats.nums_incorrect
+
+
         system_user_ratio = defaultdict(str)
         system = self.stats.system_acts_count + 0.0
         user = self.stats.user_acts_count + 0.0
         system_user_ratio['TEST'] = [system/(system+user), user/(system+user)]
 
-        Draw_plots.print_lengths_tofile(self.stats.system_acts, self.stats.i_dial_count, self.dirname+"/TEST_system_act_count.txt")
-        Draw_plots.print_lengths_tofile(self.stats.user_acts, self.stats.i_dial_count, self.dirname+"/TEST_user_act_count.txt")
+        # Draw_plots.print_lengths_tofile(self.stats.system_acts, self.stats.i_dial_count, self.dirname+"/TEST_system_act_count.txt")
+        # Draw_plots.print_lengths_tofile(self.stats.user_acts, self.stats.i_dial_count, self.dirname+"/TEST_user_act_count.txt")
 
 
         for name, simulator in self.simulators.iteritems():
@@ -135,13 +142,15 @@ class Eval:
             num_con_info[name] = stats_sim.nums_con_info
             num_uniq_con_info[name] = stats_sim.nums_uniq_con_info
             num_apology[name] = stats_sim.nums_apology
+            num_correct[name] = stats_sim.nums_correct
+            num_incorrect[name] = stats_sim.nums_incorrect
 
             system = stats_sim.system_acts_count + 0.0
             user = stats_sim.user_acts_count + 0.0
             system_user_ratio[name] = [system/(system+user), user/(system+user)]
 
-            Draw_plots.print_lengths_tofile(stats_sim.system_acts, stats_sim.i_dial_count, self.dirname+"/"+ name+"_system_act_count.txt")
-            Draw_plots.print_lengths_tofile(stats_sim.user_acts, stats_sim.i_dial_count, self.dirname+"/"+name+"_user_act_count.txt")
+            # Draw_plots.print_lengths_tofile(stats_sim.system_acts, stats_sim.i_dial_count, self.dirname+"/"+ name+"_system_act_count.txt")
+            # Draw_plots.print_lengths_tofile(stats_sim.user_acts, stats_sim.i_dial_count, self.dirname+"/"+name+"_user_act_count.txt")
 
         # dialogue lengths
         Draw_plots.count_length_stats(dial_lengths, self.dirname+"/dialogue-length.txt")
@@ -154,32 +163,33 @@ class Eval:
         Draw_plots.count_length_stats(turn_lengths, self.dirname+"/turn-length.txt")
         Draw_plots.plot_mean_lengths_stats(turn_lengths, self.dirname + "/turn-lengths.png", "Turn Lengths")
         Draw_plots.plot_histogram_lines(turn_lengths, self.dirname + "/turn-lengths-hist.png", title="Turn Lengths",
-                                        xlabel="Dialogue act items", ylabel="Amount of dialogues")
+                                        xlabel="Dialogue act items", ylabel="Dialogues (%)")
         #Draw_plots.plot_histograms_pointy(turn_lengths, self.dirname + "/turn-lengths-hist.png", "Turn Lengths", 15)
 
         Draw_plots.count_length_stats(user_turn_lengths, self.dirname+"/user-turn-length.txt")
         Draw_plots.plot_mean_lengths_stats(user_turn_lengths, self.dirname + "/user-turn-lengths.png", "User Turn Lengths")
         Draw_plots.plot_histogram_lines(user_turn_lengths, self.dirname + "/user-turn-lengths-hist.png", title="User Turn Lengths",
-                                        xlabel="Dialogue act items", ylabel="Amount of dialogues")
+                                        xlabel="Dialogue act items", ylabel="Dialogues (%)")
 
         Draw_plots.count_length_stats(short_turn_lengths, self.dirname+"/short-turn-length.txt")
         Draw_plots.plot_mean_lengths_stats(short_turn_lengths, self.dirname + "/short-turn-lengths.png", "Shortened Turn Lengths")
         Draw_plots.plot_histogram_lines(short_turn_lengths, self.dirname + "/short-turn-lengths-hist.png", title="Shortened Turn Lengths",
-                                        xlabel="Dialogue act items", ylabel="Amount of dialogues")
+                                        xlabel="Dialogue act items", ylabel="Dialogues (%)")
 
         Draw_plots.count_length_stats_nonzero(num_con_info, self.dirname+"/num_con_info.txt")
         Draw_plots.plot_mean_lengths_stats_nonzero(num_con_info, self.dirname + "/num_con_info_bars.png", "Number of connection info per dialogue")
         Draw_plots.plot_histogram_lines(num_con_info, self.dirname + "/num_con_info.png", title="Number of connection info per dialogue",
-                                        xlabel="Connection information", ylabel="Amount of dialogues")
+                                        xlabel="Connection information", ylabel="Dialogues (%)")
 
         Draw_plots.count_length_stats_nonzero(num_uniq_con_info, self.dirname+"/num_uniq_con_info.txt")
         Draw_plots.plot_mean_lengths_stats_nonzero(num_uniq_con_info, self.dirname + "/num_uniq_con_info_bars.png", "Number of unique connection info per dialogue")
         Draw_plots.plot_histogram_lines(num_uniq_con_info, self.dirname + "/num_uniq_con_info.png", title="Number of unique connection info per dialogue",
-                                        xlabel="Connection information", ylabel="Amount of dialogues")
+                                        xlabel="Connection information", ylabel="Dialogues (%)")
 
         Draw_plots.count_freq_stats_nonzero(num_con_info, num_apology, self.dirname+"/num_con_apo_info.txt")
 
-        #todo create output
+        Draw_plots.count_freq_stats_nonzero(num_correct, num_incorrect, self.dirname+"/num_con_corr_incorr.txt")
+
         #Draw_plots.count_length_stats(self.stats.unique_acts, self.dirname+"/Real-avg-acts.txt")
 
         #Draw_plots.plot_stacked_bar_system_user(system_user_ratio, self.dirname+"/system-user-actions.png",
@@ -205,7 +215,7 @@ class Eval:
 
 class DialogueStats:
 
-    def __init__(self, simulator=None):
+    def __init__(self, cfg, simulator=None):
         # Structures for dialogue statistics
         self.dialogue_lengths = numpy.array([], dtype=int)
 
@@ -216,6 +226,8 @@ class DialogueStats:
         self.nums_con_info = numpy.array([], dtype=int)
         self.nums_uniq_con_info = numpy.array([], dtype=int)
         self.nums_apology = numpy.array([], dtype=int)
+        self.nums_correct = numpy.array([], dtype=int)
+        self.nums_incorrect = numpy.array([], dtype=int)
 
         self.unique_acts = defaultdict(str)
         self.system_acts_count = 0
@@ -229,11 +241,55 @@ class DialogueStats:
 
         self.simulator = simulator
 
+        #load state tracker -- is needed for evaluation of correct connection information
+        self.tracker = Tracker(cfg)
+
     def update_structure(self, dialogue):
         self._append_dialogue_length(dialogue)
         self._append_turn_length(dialogue)
         self._append_unique_speech_acts(dialogue)
         self._count_num_of_acts(dialogue)
+        self.analyze_con_infos(dialogue)
+
+    def analyze_con_infos(self, dialogue):
+        d = [DialogueAct('silence()')] + dialogue
+        num_con_info = 0
+        uniq_con_info = set()
+        apology = 0
+        correct = 0
+        incorrect = 0
+
+        self.tracker.new_dialogue()
+
+        while len(d) > 1:
+            self.tracker.update_state(d[0], d[1])
+
+            a = Preprocessing.shorten_connection_info(d[1])
+
+            if unicode(d[1]) != unicode(a):
+                num_con_info += 1
+                if self.tracker.is_connection_correct():
+                    correct += 1
+                else:
+                    incorrect += 1
+
+                prefix = unicode(a)[:-16]
+                if len(prefix) == 0 or unicode(d[1]).startswith(prefix):
+                    con_inf = unicode(d[1])[len(prefix):]
+                    uniq_con_info.add(con_inf)
+                else:
+                    raise
+
+            if 'apology' in unicode(d[1]):
+                apology += 1
+            d = d[2:]
+
+        self.nums_con_info = numpy.append(self.nums_con_info, num_con_info)
+        self.nums_uniq_con_info = numpy.append(self.nums_uniq_con_info, len(uniq_con_info))
+        self.nums_apology = numpy.append(self.nums_apology, apology)
+        self.nums_correct = numpy.append(self.nums_correct, correct)
+        self.nums_incorrect = numpy.append(self.nums_incorrect, incorrect)
+
 
     def count_precision_recall(self, dialogue):
         self._append_dialogue_precision_recall(dialogue)
@@ -306,35 +362,14 @@ class DialogueStats:
 
     def _append_turn_length(self, dialogue):
         d = dialogue
-        num_con_info = 0
-        uniq_con_info = set()
-        apology = 0
 
         while len(d) > 1:
             self.turn_lengths = numpy.append(self.turn_lengths, len(d[0]) + len(d[1]))
             self.user_turn_lengths = numpy.append(self.user_turn_lengths, len(d[1]))
 
             a = Preprocessing.shorten_connection_info(d[0])
-
-            if unicode(d[0]) != unicode(a):
-                num_con_info += 1
-
-                prefix = unicode(a)[:-16]
-                if len(prefix) == 0 or unicode(d[0]).startswith(prefix):
-                    con_inf = unicode(d[0])[len(prefix):]
-                    uniq_con_info.add(con_inf)
-                else:
-                    raise
-
-            if 'apology' in unicode(d[0]):
-                apology += 1
-
             self.shortened_turn_lengths = numpy.append(self.shortened_turn_lengths, len(a)+len(d[1]))
             d = d[2:]
-        self.nums_con_info = numpy.append(self.nums_con_info, num_con_info)
-        self.nums_uniq_con_info = numpy.append(self.nums_uniq_con_info, len(uniq_con_info))
-        self.nums_apology = numpy.append(self.nums_apology, apology)
-
 
 class Draw_plots:
 
@@ -427,6 +462,12 @@ class Draw_plots:
             lines.append(name+"\t"+str(sum(a))+"\t"+str(sum(b))+"\t"+str(sum(a_b))+"\t" \
                          +str(len(nums_a)))
         lines.append('')
+
+        for name, nums_a in num_con_info.iteritems():
+            nums_b = num_apology[name]
+
+            lines.append(name+' sum 1: '+str(numpy.sum(nums_a)))
+            lines.append(name+' sum 2: '+str(numpy.sum(nums_b)))
 
         FileWriter.write_file(filename, lines)
 

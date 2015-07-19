@@ -369,6 +369,7 @@ ontology = {
     },
     
     'fixed_goal': {
+        # names of slots that define the goal and must be fixed through the dialogue (used for user simulators)
     	#'city': 0,
     	'from_city': 0,
     	'from_stop': 0,

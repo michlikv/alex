@@ -67,7 +67,10 @@ class DDDSTracker(DialogueState):
         self.turn_number = 0
 
         #todo settingy z kategorie USimulate??
-        self.debug = cfg['UserSimulation']['debug']
+        if 'debug' in cfg['UserSimulation']:
+            self.debug = cfg['UserSimulation']['debug']
+        else:
+            self.debug = False
 
         self.type = cfg['DM']['DeterministicDiscriminativeDialogueState']['type']
         self.session_logger = cfg['Logging']['session_logger']
@@ -254,42 +257,42 @@ class DDDSTracker(DialogueState):
     def is_connection_info_consistent(self, da):
         has_er = False
 
-        #check alternatives
-        if 'alternative' in self.user_slots:
-            said_alternative = 1
-            for dai in da:
-                # if da is inform(alternative="some positive number") and user specified alternative
-                if dai.dat == 'inform' and dai.name and dai.name == 'alternative' and dai.value and dai.value.isdigit():
-                    said_alternative = int(dai.value)
+        # #check alternatives
+        # if 'alternative' in self.user_slots:
+        #     said_alternative = 1
+        #     for dai in da:
+        #         # if da is inform(alternative="some positive number") and user specified alternative
+        #         if dai.dat == 'inform' and dai.name and dai.name == 'alternative' and dai.value and dai.value.isdigit():
+        #             said_alternative = int(dai.value)
+        #
+        #     wanted_num = 0
+        #     user_val = self.user_slots['alternative'].mph()[1]
+        #     if user_val.isdigit():
+        #         wanted_num = int(user_val)
+        #     elif user_val == 'next':
+        #         wanted_num = self.last_connection_alternative +1
+        #     elif user_val == 'prev' and self.last_connection_alternative >1:
+        #         wanted_num = self.last_connection_alternative -1
+        #
+        #     if user_val == 'last' and said_alternative == 1:
+        #         has_er = True # It is not known how many alternatives were found
+        #     #if values mismatch
+        #     if wanted_num != 0 and wanted_num != said_alternative:
+        #         has_er = True
+        #
+        #     self.last_connection_alternative = said_alternative
 
-            wanted_num = 0
-            user_val = self.user_slots['alternative'].mph()[1]
-            if user_val.isdigit():
-                wanted_num = int(user_val)
-            elif user_val == 'next':
-                wanted_num = self.last_connection_alternative +1
-            elif user_val == 'prev' and self.last_connection_alternative >1:
-                wanted_num = self.last_connection_alternative -1
-
-            if user_val == 'last' and said_alternative == 1:
-                has_er = True # It is not known how many alternatives were found
-            #if values mismatch
-            if wanted_num != 0 and wanted_num != said_alternative:
-                has_er = True
-
-            self.last_connection_alternative = said_alternative
-
-        #check vehicle
-        if 'vehicle' in self.user_slots:
-            wanted_value = self.user_slots['vehicle'].mph()[1]
-            contains_value = False
-            for dai in da:
-                if dai.dat == 'inform' and dai.name and dai.name == 'vehicle' and dai.value and  wanted_value.lower() in dai.value.lower():
-                    contains_value = True
-                    break
-            # if there is not a correct vehicle even once, the connection is incorrect
-            if not contains_value:
-                has_er = True
+        # #check vehicle
+        # if 'vehicle' in self.user_slots:
+        #     wanted_value = self.user_slots['vehicle'].mph()[1]
+        #     contains_value = False
+        #     for dai in da:
+        #         if dai.dat == 'inform' and dai.name and dai.name == 'vehicle' and dai.value and  wanted_value.lower() in dai.value.lower():
+        #             contains_value = True
+        #             break
+        #     # if there is not a correct vehicle even once, the connection is incorrect
+        #     if not contains_value:
+        #         has_er = True
 
         #check from and to stop
         said_from_stop = None
@@ -313,28 +316,28 @@ class DDDSTracker(DialogueState):
         to_stop = self.user_slots['to_stop'].mph()[1] if 'to_stop' in self.user_slots else None
         to_city = self.user_slots['to_city'].mph()[1] if 'to_city' in self.user_slots else None
 
-        if from_stop is None and from_city is None:
-            has_er = True
-        if to_stop is None and to_city is None:
-            has_er = True
+        #if from_stop is None and from_city is None:
+        #    has_er = True
+        #if to_stop is None and to_city is None:
+        #    has_er = True
 
         if not self._is_compatible_stops(said_from_stop, walkto_from, from_stop, from_city):
             has_er = True
         if not self._is_compatible_stops(said_to_stop, walkto_to, to_stop, to_city):
             has_er = True
 
-        self.connection_info_matches = not has_er
+        return not has_er
 
     def _is_compatible_stops(self, said_stop, walkto, stop, city):
         if not walkto:
-            if said_stop and stop and stop.lower() not in said_stop.lower():
+            if said_stop and stop and (stop.lower() not in said_stop.lower() and said_stop.lower() not in stop.lower()):
                 return False
         else:
             #we should walk to the destination
             if said_stop and stop and not self._is_stops_in_same_city(said_stop, stop):
                 return False
         if said_stop and city and not self._is_stop_in_city(said_stop, city):
-                return False
+            return False
         return True
 
     def context_resolution(self, user_da, system_da):
@@ -444,7 +447,7 @@ class DDDSTracker(DialogueState):
                 if dai.name == "time":
                     self.user_slots['silence_time'] = float(dai.value)
 
-        weight = 0.0;
+        weight = 0.0
         #system dialogue act in this case is a reaction to a previous user act!
         if isinstance(system_da, DialogueAct):
             for dai in system_da:
@@ -492,182 +495,6 @@ class DDDSTracker(DialogueState):
                              "irepeat", "notunderstood", "reqmore", "restart" ]):
                     self.lsdait.set({dai.dat: prob, })
 
-    # def get_slots_being_requested(self, req_prob=0.8):
-    #     """Return all slots which are currently being requested by the user along with the correct value."""
-    #     requested_slots = {}
-    #
-    #     for slot in self.user_request_history_slots:
-    #         if isinstance(self.user_request_history_slots[slot], D3DiscreteValue) and slot.startswith("urh_"):
-    #
-    #             if self.user_slots[slot]["user-requested"] > req_prob:
-    #                 if slot[3:] in self.user_slots:
-    #                     requested_slots[slot[3:]] = self.user_slots[slot[3:]]
-    #                 else:
-    #                     requested_slots[slot[3:]] = "none"
-    #
-    #     return requested_slots
-
-    # def get_slots_being_confirmed(self, conf_prob=0.8):
-    #     """Return all slots which are currently being confirmed by the user along with the value being confirmed."""
-    #     confirmed_slots = {}
-    #
-    #     for slot in self.user_confirm_history_slots:
-    #         if isinstance(self.user_slots[slot], D3DiscreteValue) and slot.startswith("uch_"):
-    #             prob, value = self.user_slots[slot].mph()
-    #             if value not in ['none', 'system-informed', None] and prob > conf_prob:
-    #                 confirmed_slots[slot[3:]] = self.user_slots[slot[3:]]
-    #
-    #     return confirmed_slots
-
-    # def get_slots_being_noninformed(self, noninf_prob=0.8):
-    #     """Return all slots provided by the user and the system has not informed about them yet along with
-    #     the value of the slot.
-    #
-    #     This will not detect a change in a goal. For example::
-    #
-    #         U: I want a Chinese restaurant.
-    #         S: Ok, you want a Chinese restaurant. What price range you have in mind?
-    #         U: Well, I would rather want an Italian Restaurant.
-    #         S: Ok, no problem. You want an Italian restaurant. What price range you have in mind?
-    #
-    #     Because the system informed about the food type and stored "system-informed", then
-    #     we will not notice that we confirmed a different food type.
-    #     """
-    #     noninformed_slots = {}
-    #
-    #     for slot in self.user_slots:
-    #         if not isinstance(self.user_slots[slot], D3DiscreteValue):
-    #             continue
-    #
-    #         # test whether the slot is not currently requested
-    #         if "urh_" + slot not in self.user_request_history_slots or self.user_request_history_slots["urh_" + slot]["none"] > 0.999:
-    #             prob, value = self.user_slots[slot].mph()
-    #             # test that the non informed value is an interesting value
-    #             if value not in ['none', None] and prob > noninf_prob:
-    #                 noninformed_slots[slot] = self.user_slots[slot]
-    #
-    #     return noninformed_slots
-
-    # def get_accepted_slots(self, acc_prob):
-    #     """Returns all slots which have a probability of a non "none" value larger then some threshold.
-    #     """
-    #     accepted_slots = {}
-    #
-    #     for slot in self.user_slots:
-    #         if not isinstance(self.user_slots[slot], D3DiscreteValue):
-    #             continue
-    #
-    #         prob, value = self.user_slots[slot].mph()
-    #         if value not in ['none', 'system-informed', None] and prob >= acc_prob:
-    #             accepted_slots[slot] = self.user_slots[slot]
-    #
-    #     return accepted_slots
-
-    # def get_slots_tobe_confirmed(self, min_prob, max_prob):
-    #     """Returns all slots which have a probability of a non "none" value larger then some threshold and still not so
-    #     large to be considered as accepted.
-    #     """
-    #     tobe_confirmed_slots = {}
-    #
-    #     for slot in self.user_slots:
-    #         if not isinstance(self.user_slots[slot], D3DiscreteValue):
-    #             continue
-    #
-    #         prob, value = self.user_slots[slot].mph()
-    #         if value not in ['none', 'system-informed', None] and min_prob <= prob and prob < max_prob:
-    #             tobe_confirmed_slots[slot] = self.user_slots[slot]
-    #
-    #     return tobe_confirmed_slots
-
-    # def get_slots_tobe_selected(self, sel_prob):
-    #     """Returns all slots which have a probability of the two most probable non "none" value larger then some threshold.
-    #     """
-    #     tobe_selected_slots = {}
-    #
-    #     for slot in self.user_slots:
-    #         if not isinstance(self.user_slots[slot], D3DiscreteValue):
-    #             continue
-    #
-    #         (prob1, value1), (prob2, value2) = self.user_slots[slot].tmphs()
-    #
-    #         if value1 not in ['none', 'system-informed', None] and prob1 > sel_prob and \
-    #             value2 not in ['none', 'system-informed', None] and prob2 > sel_prob:
-    #             tobe_selected_slots[slot] = self.user_slots[slot]
-    #
-    #     return tobe_selected_slots
-
-    # def get_changed_slots(self, cha_prob):
-    #     """Returns all slots that have changed from the previous turn. Because the change is determined by change in
-    #     probability for a particular value, there may be very small changes. Therefore, this will only report changes
-    #     for values with a probability larger than the given threshold.
-    #
-    #     :param cha_prob: minimum current probability of the most probable hypothesis to be reported
-    #     :rtype: dict
-    #     """
-    #     changed_slots = {}
-    #
-    #     # compare the accepted slots from the previous and the current turn
-    #     if len(self.turns) >= 2:
-    #         cur_slots = self.turns[-1][2][0]
-    #         prev_slots = self.turns[-2][2][0]
-    #
-    #         for slot in cur_slots:
-    #             if not isinstance(cur_slots[slot], D3DiscreteValue):
-    #                 continue
-    #
-    #             cur_prob, cur_value = cur_slots[slot].mph()
-    #             prev_prob, prev_value = prev_slots[slot].mph()
-    #
-    #             if cur_value not in ['none', 'system-informed', None] and cur_prob > cha_prob and \
-    #                 prev_value not in ['system-informed', None] and \
-    #                 cur_value != prev_value:
-    #                 #prev_prob > cha_prob and \ # only the current value must be accepted
-    #                 changed_slots[slot] = cur_slots[slot]
-    #
-    #         return changed_slots
-    #     elif len(self.turns) == 1:
-    #         # after the first turn all accepted slots are effectively changed
-    #         return self.get_accepted_slots(cha_prob)
-    #     else:
-    #         return {}
-
-    # def state_changed(self, cha_prob):
-    #     """Returns a boolean indicating whether the dialogue state changed significantly
-    #     since the last turn. True is returned if at least one slot has at least one value
-    #     whose probability has changed at least by the given threshold since last time.
-    #
-    #     :param cha_prob: minimum probability change to be reported
-    #     :rtype: Boolean
-    #     """
-    #     if len(self.turns) >= 2:
-    #         cur_all_slots = self.turns[-1][2]
-    #         prev_all_slots = self.turns[-2][2]
-    #
-    #         for cur_slots,prev_slots in zip(cur_all_slots, prev_all_slots):
-    #             for slot in cur_slots:
-    #                 if not isinstance(cur_slots[slot], D3DiscreteValue):
-    #                     continue
-    #
-    #                 for value, cur_prob in cur_slots[slot].items():
-    #                     if value in ['none', 'system-informed', None]:
-    #                         continue
-    #                     prev_prob = prev_slots[slot].get(value, 0.0)
-    #                     if abs(cur_prob - prev_prob) > cha_prob:
-    #                         return True
-    #     elif len(self.turns) == 1:
-    #         slots = self.turns[-1][2]
-    #         for slot in slots:
-    #             if not isinstance(slots[slot], D3DiscreteValue):
-    #                 continue
-    #             prob, value = slots[slot].mph()
-    #             if value in ['none', 'system-informed', None]:
-    #                 continue
-    #             if prob > cha_prob:
-    #                 return True
-    #         pass
-    #     return False
-
-
     def _hash_values(self, hash):
         result = defaultdict(str)
         # slots with prefix "uch_"
@@ -711,10 +538,17 @@ class DDDSTracker(DialogueState):
         for city in stopA_city:
             if city in stopB_city:
                 return True
-        return False
+        if stopA_city and stopB_city:
+            return False
+        else:
+            return True
 
     def _is_stop_in_city(self, stop, city):
         return stop.lower().startswith(city.lower()) or stop in self.ontology.get_compatible_vals("city_stop", city)
+
+    def is_connection_correct(self):
+        return self.connection_info_matches
+
 
     def get_compatible_values(self, dai, da):
         slot_name = dai.name
