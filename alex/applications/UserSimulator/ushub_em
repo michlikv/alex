@@ -1,0 +1,2 @@
+#! /bin/sh
+./ushub.py -c ptics.cfg  ptics_hdc_slu.cfg google.cfg simulate.cfg error_modeling.cfg -n 1000

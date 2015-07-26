@@ -28,5 +28,4 @@ if __name__ == '__main__':
     cfg['Logging']['system_logger'].info("Training simulator\n" + "=" * 120)
 
     simulator = simulator_factory_train(cfg)
-    #    simulator.make_stats_all("2015-04-15")
     simulator.save(cfg)

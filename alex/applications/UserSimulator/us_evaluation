@@ -1,0 +1,3 @@
+#! /bin/sh
+./us_evaluation.py -c ptics.cfg  ptics_hdc_slu.cfg google.cfg track.cfg -t data-lists/03-shuffled-test.txt -s simulate-mlsim.cfg simulated/list-MLS.txt -s simulate-ngram.cfg simulated/list-BIG.txt   -s simulate-ngramfil.cfg simulated/list-BIGF.txt
+
