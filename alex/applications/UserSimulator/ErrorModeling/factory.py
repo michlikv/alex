@@ -24,7 +24,7 @@ def error_model_factory_load(cfg):
     try:
         em = em_type.load(cfg)
     except Exception, e:
-        raise Exception('Error loading simulator %s: %s' % em_type, e)
+        raise Exception('Error loading EM %s: %s' % em_type, e.message)
 
     return em
 
@@ -40,7 +40,7 @@ def eror_model_factory_train(cfg):
         em = em_type(cfg)
         em.train(cfg)
     except Exception, e:
-        raise Exception('Error training simulator %s: %s' % em_type, e)
+        raise Exception('Error training EM %s: %s' % em_type, e.message)
 
     return em
 
