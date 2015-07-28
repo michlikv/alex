@@ -66,6 +66,7 @@ class ErrorModel1(ErrorModel):
                 self.cfg['Logging']['system_logger'].info('Error: '+filename)
                 self.cfg['Logging']['system_logger'].info(e)
                 raise e
+        #update "missing" DAIS structures
         for name, val in self.absent_dai_struct.iteritems():
             self.absent_dai_struct[name]['N'] = self.turns - val['Y']
 
@@ -76,6 +77,16 @@ class ErrorModel1(ErrorModel):
         self.slot_frames.update(self.present_dai_struct.keys())
 
     def _compare_das(self, real_da, messed_da, exclude=['null()', 'other()', 'silence()', 'None()']):
+        """Matching of the DAIs, updating trained structures.
+
+        :param real_da: real intended DA
+        :type real_da: alex.components.slu.da.DialogueAct
+        :param messed_da: an incorrect DA
+        :type messed_da: alex.components.slu.da.DialogueAct
+        :param exclude: list of DAIs to exclude
+        :type exclude: list(str)
+        """
+
         copy_messed = set()
         for dai in messed_da:
             copy_messed.add(dai)
@@ -135,6 +146,12 @@ class ErrorModel1(ErrorModel):
                 self.absent_dai_struct[unicode(dai_m)]['Y'] += 1
 
     def _get_dialogue_from_file(self, filename):
+        """ Read and preprocess dialogue from file
+
+           :param filename: name of a file with dialogue
+           :type filename: str
+           :return: list of alsterning system and user DAs
+        """
         dialogue = FileReader.read_file(filename)
         if dialogue:
             dialogue = Preprocessing.prepare_conversations(dialogue,
@@ -188,6 +205,12 @@ class ErrorModel1(ErrorModel):
         print "."
 
     def _fill_random_value(self, dai):
+        """ fill in the DAI a new random value.
+
+           :param dai: DAI from new noisy DA
+           :type dai: alex.components.slu.da.DialogueActItem
+        """
+
         if dai.value and dai.value == "&":
             #generate uniform from compatible values
             if "city" in dai.name or "stop" in dai.name:
@@ -201,6 +224,14 @@ class ErrorModel1(ErrorModel):
             dai.value = selected
 
     def _fill_correct_value(self, real_da, new_dai):
+        """ fill in the new DAI the value from real DA.
+
+           :param real_da: real intended user DA
+           :type real_da: alex.components.slu.da.DialogueAct
+           :param new_dai: DAI from new noisy DA
+           :type new_dai: alex.components.slu.da.DialogueActItem
+        """
+
         found = False
         for dai in real_da:
             if dai.dat == new_dai.dat and dai.name == new_dai.name and dai.value:
