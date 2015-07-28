@@ -223,7 +223,9 @@ class GoogleRouteLegStep(RouteStep):
             self.distance = input_json['distance']['value']
 
 class GoogleDirectionsFinder(DirectionsFinder, APIRequest):
-    """Transit direction finder using the Google Maps query engine."""
+    """Transit direction finder using the Google Maps query engine.
+       It is with 2 seconds delay due to limitations of free access to google API.
+    """
 
     def __init__(self, cfg):
         DirectionsFinder.__init__(self)
@@ -238,7 +240,7 @@ class GoogleDirectionsFinder(DirectionsFinder, APIRequest):
         The time/date should be given as a datetime.datetime object.
         Setting the correct date is compulsory!
         """
-        #sleep 2 seconds (limit of free access, only for simulators)
+        #sleep 2 seconds
         time.sleep(2)
         
         data = {
@@ -259,7 +261,7 @@ class GoogleDirectionsFinder(DirectionsFinder, APIRequest):
         self.system_logger.info("Google Directions request:\n" + str(data))
 
         page = urllib.urlopen(self.directions_url + '?' +
-                              urllib.urlencode(data))#+'&key=AIzaSyCfOj40dnpWh45Y3kZ-G7GQunBEW43lsHw')
+                              urllib.urlencode(data))
         response = json.load(page)
         self._log_response_json(response)
 

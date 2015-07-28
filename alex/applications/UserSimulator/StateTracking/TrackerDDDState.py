@@ -224,11 +224,6 @@ class DDDSTracker(DialogueState):
             # save the last non-silence dialogue act
             self.last_system_da = system_da
 
-        # user_da = self.last_talked_about(user_da, system_da)
-        #
-        # if self.debug:
-        #     self.system_logger.debug('Last Talked About Inference - Dialogue Act: \n%s' % user_da)
-
         # perform the state update
         self.state_update(user_da, system_da)
 
@@ -252,43 +247,6 @@ class DDDSTracker(DialogueState):
     def is_connection_info_consistent(self, da):
         has_er = False
 
-        # #check alternatives
-        # if 'alternative' in self.user_slots:
-        #     said_alternative = 1
-        #     for dai in da:
-        #         # if da is inform(alternative="some positive number") and user specified alternative
-        #         if dai.dat == 'inform' and dai.name and dai.name == 'alternative' and dai.value and dai.value.isdigit():
-        #             said_alternative = int(dai.value)
-        #
-        #     wanted_num = 0
-        #     user_val = self.user_slots['alternative'].mph()[1]
-        #     if user_val.isdigit():
-        #         wanted_num = int(user_val)
-        #     elif user_val == 'next':
-        #         wanted_num = self.last_connection_alternative +1
-        #     elif user_val == 'prev' and self.last_connection_alternative >1:
-        #         wanted_num = self.last_connection_alternative -1
-        #
-        #     if user_val == 'last' and said_alternative == 1:
-        #         has_er = True # It is not known how many alternatives were found
-        #     #if values mismatch
-        #     if wanted_num != 0 and wanted_num != said_alternative:
-        #         has_er = True
-        #
-        #     self.last_connection_alternative = said_alternative
-
-        # #check vehicle
-        # if 'vehicle' in self.user_slots:
-        #     wanted_value = self.user_slots['vehicle'].mph()[1]
-        #     contains_value = False
-        #     for dai in da:
-        #         if dai.dat == 'inform' and dai.name and dai.name == 'vehicle' and dai.value and  wanted_value.lower() in dai.value.lower():
-        #             contains_value = True
-        #             break
-        #     # if there is not a correct vehicle even once, the connection is incorrect
-        #     if not contains_value:
-        #         has_er = True
-
         #check from and to stop
         said_from_stop = None
         walkto_from = False
@@ -310,11 +268,6 @@ class DDDSTracker(DialogueState):
         from_city = self.user_slots['from_city'].mph()[1] if 'from_city' in self.user_slots else None
         to_stop = self.user_slots['to_stop'].mph()[1] if 'to_stop' in self.user_slots else None
         to_city = self.user_slots['to_city'].mph()[1] if 'to_city' in self.user_slots else None
-
-        #if from_stop is None and from_city is None:
-        #    has_er = True
-        #if to_stop is None and to_city is None:
-        #    has_er = True
 
         if not self._is_compatible_stops(said_from_stop, walkto_from, from_stop, from_city):
             has_er = True
@@ -390,9 +343,6 @@ class DDDSTracker(DialogueState):
         # process the user dialogue act
         # processing the low probability DAIs first, emphasize the dialogue acts with high probability
         for prob, dai in sorted(user_da.items()):
-            #print "#0 ", self.type
-            #print "#1 SType:", prob, dai
-            ##print "#51", self.slots
 
             if self.type == "MDP":
                 if prob >= 0.5:
@@ -429,9 +379,6 @@ class DDDSTracker(DialogueState):
             elif dai.dat == "confirm":
                 self.user_confirm_history_slots["uch_" + dai.name].scale(weight)
                 self.user_confirm_history_slots["uch_" + dai.name].add(dai.value, prob)
-            # elif dai.dat == "select":
-            #     self.user_select_history_slots["ush_" + dai.name].scale(weight)
-            #     self.user_select_history_slots["ush_" + dai.name].add(dai.value, prob)
             elif dai.dat in set(["ack", "apology", "bye", "hangup", "hello", "help", "null", "other",
                              "repeat", "reqalts", "reqmore", "restart", "thankyou"]):
                 self.ludait.scale(weight)
@@ -443,7 +390,7 @@ class DDDSTracker(DialogueState):
                     self.user_slots['silence_time'] = float(dai.value)
 
         weight = 0.0
-        #system dialogue act in this case is a reaction to a previous user act!
+        #system dialogue act in this case is a reaction to a previous user act
         if isinstance(system_da, DialogueAct):
             for dai in system_da:
 
@@ -580,12 +527,6 @@ class DDDSTracker(DialogueState):
                 if dai_system is not None and dai_system.name in self.user_slots:
                     slot_name = dai_system.name
 
-                # if dai_system is None:
-                #     for dai in self.last_system_da:
-                #         if dai.name is not None and slot_name in dai.name:
-                #             dai_system = dai
-                #             break
-
             if "via" in slot_name:
                 if ( "from_city" in set_values and "to_city" in set_values and
                    set_values["from_city"] == set_values["to_city"]):
@@ -682,9 +623,6 @@ class DDDSTracker(DialogueState):
             if slot in self.ontology['fixed_values']:
                 result["u"+slot+"_val"] = value.mph()[1]
 
-        #for slot, value in self.user_slots.iteritems():
-        #    result["u"+slot] = "user-value"
-
         #add slots used by system with respect to user values
         for slot, value in self.system_slots.iteritems():
             if value.mph()[1] == 'none':
@@ -715,7 +653,6 @@ class DDDSTracker(DialogueState):
             result[slot] = val
 
         result.update(self._hash_values(self.user_confirm_history_slots))
-        #result.update(self._hash_values(self.user_select_history_slots))
 
         # slots with prefix "srh_"
         # has only "system-requested" and "user-informed" values.

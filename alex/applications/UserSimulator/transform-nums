@@ -1,2 +1,0 @@
-#! /bin/sh
-./transform-nums.py -c ptics.cfg  ptics_hdc_slu.cfg google.cfg -f data-lists/list_nums.txt -t /home/vendulka/nmgr/DIPLOMKA/DATA/05-nums-usonly/

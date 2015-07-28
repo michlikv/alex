@@ -1,2 +1,0 @@
-#! /bin/sh
-./ushub.py -c ptics.cfg  ptics_hdc_slu.cfg google.cfg simulate.cfg -n 1

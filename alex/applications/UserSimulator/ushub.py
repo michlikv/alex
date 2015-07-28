@@ -21,7 +21,7 @@ from Readers.FileWriter import FileWriter
 
 class Generator:
     """
-      Generator of dialogues generates specified amount of dialogues between selected Dialogue manager
+      Generator of dialogues generates a dialogue between selected Dialogue manager
       and User Simulator.
 
       It communicates in dialogue acts and produces text logs of the dialogues.
@@ -140,7 +140,6 @@ if __name__ == '__main__':
 
     generator = Generator(cfg)
     num_iter = args.num
-    #num_iter = 10
 
     ts = time.time()
     st = datetime.datetime.fromtimestamp(ts).strftime('%Y-%m-%d--%H:%M:%S')
@@ -163,6 +162,7 @@ if __name__ == '__main__':
             errors += 1
             print "EXCEPTION:", e
             traceback.print_exc()
+            cfg['Logging']['system_logger'].exception(e)
         print i
     print "Errors:", errors
     print "."

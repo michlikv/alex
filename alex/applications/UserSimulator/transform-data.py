@@ -19,17 +19,6 @@ from Readers.Preprocessing import Preprocessing
 class Transform:
     def __init__(self, cfg):
         self.cfg = cfg
-        self.slu = slu_factory(cfg)
-
-    def output_da(self, da):
-        """Prints the system dialogue act to the output."""
-        print "System DA:", unicode(da)
-        print
-
-    def output_nblist(self, nblist):
-        """Prints the DA n-best list to the output."""
-        print "User DA:", unicode(nblist.get_best_da())
-        print
 
     def transform(self, files_list, result_path):
         files_from = FileReader.read_file(files_list)
@@ -39,7 +28,7 @@ class Transform:
                 file_name = ntpath.basename(path)
                 dialogue = FileReader.read_file(path)
                 dialogue = Preprocessing.prepare_conversations(dialogue,
-                                                               Preprocessing.create_act_from_stack_concat_text,
+                                                               Preprocessing.create_act_from_stack_use_last,
                                                                Preprocessing.create_act_from_stack_use_last)
 
                 # transform odd user positions with slu

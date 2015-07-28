@@ -28,5 +28,4 @@ if __name__ == '__main__':
     cfg['Logging']['system_logger'].info("Training Error Model\n" + "=" * 120)
 
     em = eror_model_factory_train(cfg)
-    #    simulator.make_stats_all("2015-04-15")
     em.save(cfg)

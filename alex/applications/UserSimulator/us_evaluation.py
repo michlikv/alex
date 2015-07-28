@@ -83,7 +83,6 @@ class Eval:
                 for dialogue in self.test_dialogues:
                     simulator['stats'].count_precision_recall(dialogue)
             print(i)
-            #if i % 5 == 0:
             Draw_plots.print_mean_prec_rec_to_file(self.simulators, self.dirname+"/dialogue-prec-rec.txt")
 
     def run(self, test_list):
@@ -189,18 +188,6 @@ class Eval:
         Draw_plots.count_freq_stats_nonzero(num_con_info, num_apology, self.dirname+"/num_con_apo_info.txt")
 
         Draw_plots.count_freq_stats_nonzero(num_correct, num_incorrect, self.dirname+"/num_con_corr_incorr.txt")
-
-        #Draw_plots.count_length_stats(self.stats.unique_acts, self.dirname+"/Real-avg-acts.txt")
-
-        #Draw_plots.plot_stacked_bar_system_user(system_user_ratio, self.dirname+"/system-user-actions.png",
-        #                                        "System and User Actions")
-
-        #Draw_plots.plot_bar_next_to_one_another({"madeup1": {"a": 1, "b": 5, "c": 6, 'd': 2 },
-         #                                        "madeup2": {"a": 2, "b": 3, "c": 5, 'd': 2 },
-          #                                       "madeup3": {"a": 3, "b": 1, "c": 4, 'd': 2 },},
-           #                                     ["blue", "green", "red", "yellow"],
-            #                                    "Bars next to each other",
-             #                                   self.dirname+"/picture.png")
 
     def get_dialogue_from_file(self, filename):
         dialogue = FileReader.read_file(filename)
@@ -418,7 +405,7 @@ class Draw_plots:
 
     @staticmethod
     def print_mean_prec_rec_to_file(simulators, filename):
-        lines = [] #["name\tprecision\trecall"]
+        lines = []
         for name, simuls in simulators.iteritems():
             precs = simuls['stats'].precisions
             recs = simuls['stats'].recalls
@@ -592,17 +579,6 @@ class Draw_plots:
         plt.ylabel('Means')
         #plt.title(title)
         plt.xticks(ind+width, xlabels)
-
-        #ax.legend( (rects1[0], rects2[0]), ('Men', 'Women') )
-        # def autolabel(rects):
-        #     # attach some text labels
-        #     for rect in rects:
-        #         height = rect.get_height()
-        #         ax.text(rect.get_x()+rect.get_width()/2., 1.05*height, '%d'%int(height),
-        #             ha='center', va='bottom')
-        #
-        # autolabel(rects1)
-        # autolabel(rects2)
 
         plt.grid(True)
         plt.savefig(filename)
