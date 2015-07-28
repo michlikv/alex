@@ -9,14 +9,14 @@ class RandomGenerator:
 
     @staticmethod
     def generate_random_response(responses, counts, total):
-        """
-        Choose one of the responses according to given probability distribution.
-        Generation is the most efficient if responses are in descending order sorted
-        by its counts (probability).
-        :param responses: list of generated objects
-        :param counts: list of counts that represent response probabilities
-        :param total: sum of counts
-        :return: random response from list of responses
+        """Choose one of the responses according to given probability distribution.
+           Generation is the most efficient if responses are in descending order sorted
+           by its counts (probability).
+
+           :param responses: list of generated objects
+           :param counts: list of counts that represent response probabilities
+           :param total: sum of counts
+           :return: random response from list of responses
         """
         # random number [0,total)
         r = random.randrange(0, total)
@@ -30,20 +30,20 @@ class RandomGenerator:
 
     @staticmethod
     def generate_random_response_uniform(responses):
-        """
-        Choose one of the responses uniformly
-        :param responses: list of generated objects
-        :return: random response from list of responses
+        """Choose one of the responses uniformly
+
+           :param responses: list of generated objects
+           :return: random response from list of responses
         """
         # random number [0,total)
         return responses[random.randrange(0, len(responses))]
 
     @staticmethod
     def is_generated(probability):
-        """
-        Decide true or false with given probability
-        :param:probability: float [0,1]
-        :return: true if generated
+        """Decide true or false with given probability
+
+           :param probability: float [0,1]
+           :return: true if generated
         """
         # random float number [0,total)
         gen = random.uniform(0, 1)
@@ -51,10 +51,9 @@ class RandomGenerator:
 
     @staticmethod
     def _running_sum(a):
-        """
-        Count running sum of a list
-        :param a: list of numeric type
-        :return:
+        """Count running sum of a list
+
+           :param a: list of numeric type
         """
         tot = 0
         for item in a:
