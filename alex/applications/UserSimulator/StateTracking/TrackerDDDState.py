@@ -5,7 +5,6 @@ from __future__ import unicode_literals
 from collections import defaultdict
 from copy import deepcopy
 from Readers.Preprocessing import Preprocessing
-from twisted.web._stan import slot
 
 from alex.components.dm.base import DiscreteValue, DialogueState
 from alex.components.dm.dddstate import D3DiscreteValue
@@ -16,6 +15,7 @@ from alex.components.slu.da import DialogueAct, DialogueActItem, DialogueActNBLi
 class DDDSTracker(DialogueState):
     """
     State tracker for user simulator.
+    It is atapted from DeterministicDiscriminativeDialogueState
     """
 
     def __init__(self, cfg, ontology):
@@ -27,8 +27,6 @@ class DDDSTracker(DialogueState):
         self.user_request_history_slots = defaultdict(D3DiscreteValue)
         # uch_ prefix
         self.user_confirm_history_slots = defaultdict(D3DiscreteValue)
-        # # ush_ prefix
-        # self.user_select_history_slots = defaultdict(D3DiscreteValue)
 
         self.system_slots = defaultdict(D3DiscreteValue)
         # structures for remembering system dialogue acts
@@ -66,7 +64,6 @@ class DDDSTracker(DialogueState):
         self.turns = []
         self.turn_number = 0
 
-        #todo settingy z kategorie USimulate??
         if 'debug' in cfg['UserSimulation']:
             self.debug = cfg['UserSimulation']['debug']
         else:
@@ -132,9 +129,10 @@ class DDDSTracker(DialogueState):
 
     @staticmethod
     def slots_dict_to_string(slots):
-        """
-        :param slots:
-        :return:string
+        """ build a string from hash
+
+        :param slots: hash
+        :return: str
         """
         s = []
         for name in slots:
@@ -164,14 +162,11 @@ class DDDSTracker(DialogueState):
 
     def restart(self):
         """Reinitialise the dialogue state so that the dialogue manager
-        can start from scratch.
-
-        Nevertheless, remember the turn history.
+        can start from scratch. Remember the turn history.
         """
         self.user_slots = defaultdict(D3DiscreteValue)
         self.user_request_history_slots.clear()
         self.user_confirm_history_slots.clear()
-        #self.user_select_history_slots.clear()
         self.system_slots.clear()
         self.system_request_history_slots.clear()
         self.system_confirm_history_slots.clear()
