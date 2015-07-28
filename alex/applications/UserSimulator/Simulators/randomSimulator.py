@@ -2,9 +2,7 @@
 # encoding: utf8
 
 from __future__ import unicode_literals
-import random
 from alex.components.slu.da import DialogueAct, DialogueActNBList
-from alex.components.slu.common import slu_factory
 
 from simulator import Simulator
 from Readers.FileReader import FileReader
@@ -14,6 +12,10 @@ from Generators.randomGenerator import RandomGenerator
 
 
 class RandomSimulator(Simulator):
+    """
+    Implementation of random simulator.
+    It generates a response from the training dataset with uniform probability.
+    """
 
     def new_dialogue(self):
         pass
@@ -22,7 +24,6 @@ class RandomSimulator(Simulator):
         self.cfg = cfg
         self.n = 2
         self.simulator = NgramsTrained(self.n)
-        #self.slu = slu_factory(cfg)
 
     def train_simulator(self, cfg):
         list_of_files = FileReader.read_file(cfg['UserSimulation']['files']['training-data'])

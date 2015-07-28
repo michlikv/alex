@@ -14,6 +14,11 @@ from Generators.randomGenerator import RandomGenerator
 
 
 class BigramSimulatorFiltered(Simulator):
+    """Implementation of filtered bigram simulator.
+       The simulator shortens connection information in system actions and
+       uses frame dialogue acts: it generates the response without values
+       and the values are generated separately.
+    """
 
     def new_dialogue(self):
         pass
@@ -44,9 +49,7 @@ class BigramSimulatorFiltered(Simulator):
                                                                    Preprocessing.create_act_from_stack_use_last,
                                                                    Preprocessing.create_act_from_stack_use_last)
                     Preprocessing.clear_numerics(dialogue)
-                    #dialogue = Preprocessing.convert_string_to_dialogue_acts("")
                     dialogue = [DialogueAct(d) for d in dialogue]
-
                     Preprocessing.add_end_da(dialogue)
                     # save slot values
                     slot_values = Preprocessing.get_slot_names_plus_values_from_dialogue(dialogue,
@@ -61,13 +64,10 @@ class BigramSimulatorFiltered(Simulator):
 
                     # remove slot values
                     Preprocessing.remove_slot_values_from_dialogue(dialogue)
-
                     dialogue = [Preprocessing.shorten_connection_info(a) if i % 2 == 0 else a for i, a in enumerate(dialogue)]
 
                     self.simulator.train_counts(dialogue)
-
                     self.slotvals.train_counts(slot_values)
-                    # self.simulator.print_table_bigrams()
             except:
                 self.cfg['Logging']['system_logger'].info('Error: '+f)
                 raise
@@ -84,6 +84,11 @@ class BigramSimulatorFiltered(Simulator):
         self.slotvals.save(cfg['UserSimulation']['files']['slotvals'])
 
     def get_oov(self):
+        """Return percentage of out of domain actions in a generation process.
+
+           :return: percentage of ood
+           :rtype: float
+        """
         return self.uniform_counter/(self.found_counter+self.uniform_counter+0.0)
 
     def generate_response_from_history(self, history):
@@ -92,17 +97,14 @@ class BigramSimulatorFiltered(Simulator):
     def generate_response(self, system_da):
         # preprocess DA
         da_unicode = unicode(system_da)
-        # da_unicode = Preprocessing.shorten_connection_info(da_unicode)
         Preprocessing.remove_slot_values(system_da)
         filtered = Preprocessing.shorten_connection_info(system_da)
 
         hist = (filtered,)
         nblist = DialogueActNBList()
 
-        # print "generating:", hist
         reactions = self.simulator.get_possible_reactions(hist)
 
-        # print "Possible reactions:", reactions
         if not reactions[0]:
             reactions = self.simulator.get_possible_unigrams()
             self.uniform_counter += 1

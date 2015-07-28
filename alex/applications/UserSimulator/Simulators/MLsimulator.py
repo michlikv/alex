@@ -2,14 +2,10 @@
 # encoding: utf8
 
 from __future__ import unicode_literals
-import random
 import numpy
-import codecs
 import pickle
-import math
 from copy import deepcopy
 from alex.components.slu.da import DialogueAct, DialogueActNBList, DialogueActItem
-from alex.components.slu.common import slu_factory
 from alex.components.dm import Ontology
 from collections import defaultdict
 import pylab as pl
@@ -26,6 +22,17 @@ from sklearn import linear_model
 from sklearn.feature_extraction import DictVectorizer
 
 class MLsimulator(Simulator):
+    """
+    Implementation of MLS simulator.
+    MLS simulator tracks dialogue state to keep track of the
+    dialogue history, similarly as it is common in dialogue managers, and generates
+    responses based on the state. The MLS models a probability of occurrence of a
+    user frame DAIs given the state of the dialogue. The DAIs are modeled independently
+    and together they build a user response in a frame format. The values
+    are added to the frame response using a heuristics. In the simulation, we assume
+    that the order of DAIs in a user response is not important and that a frame DAI
+    cannot be repeated in the response.
+    """
 
     def __init__(self, cfg):
         self.cfg = cfg
@@ -38,13 +45,6 @@ class MLsimulator(Simulator):
 
         RandomGenerator()
 
-    def get_luda_nblist(self):
-        nblist = DialogueActNBList()
-        nblist.add(1.0, self.luda)
-        nblist.merge()
-        nblist.scale()
-        return nblist
-
     def get_state(self):
         return self.tracker
 
@@ -53,6 +53,11 @@ class MLsimulator(Simulator):
         self.tracker = Tracker.Tracker(self.cfg)
 
     def _read_dialogue(self, filename):
+        """Read and preprocess dialogue file.
+
+        :param filename: name of file
+        :return: list of consecutive system and user actions
+        """
         dialogue = FileReader.read_file(filename)
         if dialogue:
             dialogue = Preprocessing.prepare_conversations(dialogue,
@@ -66,6 +71,11 @@ class MLsimulator(Simulator):
             return None
 
     def _get_feature_names_and_responses(self, filelist):
+        """Prepare feature hashes and list of responses
+
+        :param filelist: list of training files
+        :return: tuple (feature vectors, responses)
+        """
         feature_vects = []
         responses = []
         for file_name in filelist:
@@ -95,6 +105,11 @@ class MLsimulator(Simulator):
         return feature_vects, responses
 
     def _create_classes(self, responses):
+        """Extract classes names from list of responses and setup classes vector.
+
+        :param responses: list of responses that should be turned to classes
+        :return: classes vectors
+        """
         size = len(responses)
         classes = defaultdict(str)
         for i, response in enumerate(responses):
@@ -105,27 +120,18 @@ class MLsimulator(Simulator):
         return classes
 
     def _create_feature_vectors(self, cfg):
+        """Extract feature vectors and classes from the training data
+
+        :param cfg: configuration
+        :return: tuple: (training vectors, classes, testing vectors, classes)
+        """
         list_of_files_train = FileReader.read_file(cfg['UserSimulation']['files']['training-data'])
         list_of_files_test = FileReader.read_file(cfg['UserSimulation']['files']['testing-data'])
 
         vectors_train, responses_train = self._get_feature_names_and_responses(list_of_files_train)
         vectors_test, responses_test = self._get_feature_names_and_responses(list_of_files_test)
 
-        # # add negative used features
-        # #1. find all names
-        # names_used = defaultdict(str)
-        # for elem in feature_vects:
-        #     for name, value in elem.iteritems():
-        #         if name.endswith("_in"):
-        #             names_used[name] = 1
-        #
-        # #2. add all negatives
-        # for elem in feature_vects:
-        #     for name, value in names_used.iteritems():
-        #         if name not in elem:
-        #             elem[name]="not_used"
-
-        # transform vectors - fit by training data only!
+        # transform vectors - fit by training data
         self.vectorizer = DictVectorizer(sparse=True)
         vectors_train = self.vectorizer.fit_transform(vectors_train)
         vectors_test = self.vectorizer.transform(vectors_test)
@@ -181,42 +187,6 @@ class MLsimulator(Simulator):
 
         if 'classifiers' in self.cfg['UserSimulation']['files']:
             self.save_obj(self.cfg['UserSimulation']['files']['classifiers'], self.classifiers)
-
-        self.make_stats_all(self.cfg['UserSimulation']['files']['stats'])
-
-    def make_stats_all(self, prefixfile):
-        thresholds = numpy.linspace(0.0, 1.0, 11)
-        #training data stats
-        self.make_stats(self.vectors_train, self.classes_train, prefixfile+"-train-", thresholds)
-        #testing data stats
-        self.make_stats(self.vectors_test, self.classes_test, prefixfile+"-test-", thresholds)
-        #thresholds = numpy.linspace(0.1, 0.3, 11)
-        #self.make_stats(self.vectors_train, self.classes_train, prefixfile+"-0203-", thresholds)
-
-        tops = []
-        for name, classifier in self.classifiers.iteritems():
-            tops.append(eval.get_topN_features(self.vectorizer, classifier, name, n=10))
-        FileWriter.write_file(prefixfile+'top-weight-features.txt', tops)
-        self.cfg['Logging']['system_logger'].info("Stats finished")
-
-    def make_stats(self, vectors, classes, prefixfile, thresholds):
-        #for threshold in thresholds:
-          #  precision, recall, null = self.count_precision_recall_null(vectors, classes, threshold)
-          #  print prefixfile, "threshold:", threshold, "precision:", precision, "recall", recall, "nulls", null
-          #  precs.append(precision)
-          #  recs.append(recall)
-          #  nulls.append(null)
-        #factored, mean = eval.count_precision_recall_accuracy_null(vectors, classes, thresholds, self.classifiers)
-        mean_prec, mean_rec = eval.count_precision_recall_by_turns(vectors, classes, thresholds, self.classifiers)
-        # this counts mean precision and mean recall across classifiers
-        eval.make_plot_pr(prefixfile+"means", thresholds, mean_prec, mean_rec)
-
-        # this makes precision and recall plot for each classifier
-        # i = 100
-        # for name, val in factored.iteritems():
-        #     eval.make_plot_pra(str(i)+prefixfile+name, thresholds, val['precision'], val['recall'], val['accuracy'])
-        #     i += 1
-
 
     @staticmethod
     def load_obj(filename):
@@ -287,11 +257,10 @@ class MLsimulator(Simulator):
         FileWriter.write_file(self.cfg['UserSimulation']['files']['classes_names'], sizes)
 
     def _sample_response(self, vector):
-        """
-        Sample response for given vector using probability from classifiers.
-        :rtype : tuple of DA - real DA response and messed DA according to error model
+        """Build response for given vector using probabilities from classifiers.
+
         :param vector: feature vector
-        :return: sampled DA
+        :return: DA
         """
         response_real = []
 
@@ -307,8 +276,8 @@ class MLsimulator(Simulator):
         return realDA
 
     def _sample_response_sec(self, vector):
-        """
-        Build response for given vector using hard 1 and 0 from classifiers.
+        """Build response for given vector using hard 1 and 0 from classifiers.
+
         :param vector: feature vector
         :return: DA
         """
@@ -324,6 +293,12 @@ class MLsimulator(Simulator):
             return None
 
     def _fill_in_slot_values(self, response, system_da):
+        """ Fill slot values to frame DAs
+
+        :param response: a response Dialogue act
+        :param system_da: system action
+        """
+
         #substitute "city" and "stop" with correct context-dependent value
         cop_da = deepcopy(response)
         for dai in response:
@@ -377,17 +352,6 @@ class MLsimulator(Simulator):
             if daiO.name and daiR.name and daiO.name != daiR.name:
                 daiR.name = daiO.name
 
-    # def _messup_slot_values(self, response):
-    #     mess = deepcopy(response)
-    #
-    #     for dai in mess.dais:
-    #         if dai.value and RandomGenerator.is_generated(self._mess_dai_rate):
-    #             # if there is a value and we decide to alter values, choose uniformly different value
-    #             possible_values, v, s = self.slotvals.get_possible_reactions((dai.name,))
-    #             selected = RandomGenerator.generate_random_response_uniform(possible_values)
-    #             dai.value = selected
-    #     return mess
-
     def get_oov(self):
         return 0.0
 
@@ -407,7 +371,7 @@ class MLsimulator(Simulator):
         #sample response from vector
         response = self._sample_response(vector)
 
-        # fill in slot values or set to null act
+        # fill in slot values or set to null act if empty
         if response is not None:
             self._fill_in_slot_values(response, history[-1])
         else:
@@ -440,8 +404,7 @@ class MLsimulator(Simulator):
         nblist.scale()
         return nblist.get_confnet()
 
-class eval:
-
+class _eval:
     @staticmethod
     def count_precision_recall_null_bag_of(vectors, classes, thresholds, classifiers):
         # counts precision, recall, accuracy as "bag of" representation of zeros and ones

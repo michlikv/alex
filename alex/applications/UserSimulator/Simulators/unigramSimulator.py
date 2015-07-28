@@ -2,9 +2,7 @@
 # encoding: utf8
 
 from __future__ import unicode_literals
-import random
 from alex.components.slu.da import DialogueAct, DialogueActNBList
-from alex.components.slu.common import slu_factory
 
 from simulator import Simulator
 from Readers.FileReader import FileReader
@@ -14,6 +12,11 @@ from Generators.randomGenerator import RandomGenerator
 
 
 class UnigramSimulator(Simulator):
+    """
+    Implementation of unigram simulator.
+    It generates a response from the training dataset with unigram probability.
+    """
+
 
     def new_dialogue(self):
         pass

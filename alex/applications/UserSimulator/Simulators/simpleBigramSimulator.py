@@ -2,9 +2,7 @@
 # encoding: utf8
 
 from __future__ import unicode_literals
-import random
 from alex.components.slu.da import DialogueAct, DialogueActNBList
-from alex.components.slu.common import slu_factory
 
 from simulator import Simulator
 from Readers.FileReader import FileReader
@@ -14,6 +12,7 @@ from Generators.randomGenerator import RandomGenerator
 
 
 class SimpleBigramSimulator(Simulator):
+    """Implementation of baseline bigram simulator."""
 
     def new_dialogue(self):
         pass
@@ -47,17 +46,6 @@ class SimpleBigramSimulator(Simulator):
                 self.cfg['Logging']['system_logger'].info('Error: '+file)
                 raise
 
-
-    # def train_simulator_using_slu(self,filename_filelist, slu):
-    #     list_of_files = FileReader.read_file(filename_filelist)
-    #     self.simulator = NgramsTrained(2)
-    #
-    #     for file in list_of_files:
-    #         print "processing file", file
-    #         dialogue = Preprocessing.prepare_conversations(FileReader.read_file(file))
-    #         self.simulator.train_counts(dialogue)
-    #     # self.simulator.print_table_bigrams()
-
     @staticmethod
     def load(cfg):
         sim = SimpleBigramSimulator(cfg)
@@ -77,9 +65,7 @@ class SimpleBigramSimulator(Simulator):
         hist = (unicode(system_da),)
         nblist = DialogueActNBList()
 
-        # print "generating:", hist
         reactions = self.simulator.get_possible_reactions(hist)
-        # print "Possible reactions:", reactions
 
         if not reactions[0]:
             reactions = self.simulator.get_possible_unigrams()

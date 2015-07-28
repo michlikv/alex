@@ -7,9 +7,14 @@ from simulator import Simulator
 from alex.components.slu.da import DialogueAct, DialogueActNBList
 
 class ConstantSimulator(Simulator):
+    """
+    Implementation of constant simulator.
+    It generates 'silence()' with probability 75% and hangup in 25%.
+    """
 
     def __init__(self, cfg):
-        random.seed(19910604)
+        pass
+        #random.seed(19910604)
 
     @staticmethod
     def load(cfg):
@@ -18,7 +23,7 @@ class ConstantSimulator(Simulator):
     def generate_response(self, system_da):
         nblist = DialogueActNBList()
 
-        # randomly generate silence or hangup :)
+        # randomly generate silence or hangup
         if random.randint(0, 4) == 0:
             nblist.add(1.0, DialogueAct('hangup()'))
         else:
@@ -27,15 +32,13 @@ class ConstantSimulator(Simulator):
         nblist.merge()
         nblist.scale()
 
-   #     print (unicode(nblist.get_confnet().get_best_da()))
-
         return nblist.get_confnet()
 
     def new_dialogue(self):
         pass
 
     def generate_response_from_history(self, history):
-        pass
+        self.generate_response(history[-1])
 
     def train_simulator(self, cfg):
         pass

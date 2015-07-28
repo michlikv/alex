@@ -19,23 +19,26 @@ class Simulator(object):
 
     @abc.abstractmethod
     def train_simulator(self, cfg):
-        """Train simulator."""
+        """
+        Train simulator using setting from configuration file
+
+        :param cfg: configuration
+        """
         raise NotImplementedError()
 
     @abc.abstractmethod
     def new_dialogue(self):
         """Start a new dialogue.
-           Include cleaning of the structures (dialogue state) that depend on dialogue history.
+           Clean structures that depend on dialogue history.
         """
         raise NotImplementedError()
 
     @abc.abstractmethod
     def generate_response_from_history(self, history):
-        """Generate response to the system dialogue act in a form of n-best list.
-           History of the dialogue is passed as parameter
+        """Generate response from history of a dialogue in a form of n-best list.
 
-            history: list of alex.components.slu.da.DialogueAct
-            n-best list: alex.components.slu.da.DialogueActNBList
+        :param history: history of a dialogue
+        :return: response
         """
         raise NotImplementedError()
 
@@ -43,17 +46,23 @@ class Simulator(object):
     def generate_response(self, system_da):
         """Generate response to the system dialogue act in a form of n-best list.
 
-            system_da: alex.components.slu.da.DialogueAct
-            n-best list: alex.components.slu.da.DialogueActNBList
+        :param system_da: system action
+        :return: response
         """
         raise NotImplementedError()
 
     @abc.abstractmethod
     def save(self, cfg):
-        """Save data of a simulator to file."""
+        """Save data of a simulator to file.
+
+        :param cfg: configuration
+        """
         raise NotImplementedError()
 
     @abstractstatic
     def load(cfg):
-        """  Load simulator with data data from files specified in cfg"""
+        """  Load simulator data from files specified in cfg
+
+        :param cfg: configuration
+        """
         raise NotImplementedError()
