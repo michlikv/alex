@@ -9,6 +9,7 @@ from alex.components.slu.da import DialogueAct, DialogueActNBList, DialogueActIt
 from alex.components.dm import Ontology
 from collections import defaultdict
 import pylab as pl
+import os
 
 from simulator import Simulator
 from Readers.FileReader import FileReader
@@ -226,6 +227,8 @@ class MLsimulator(Simulator):
         print "."
 
     def save_obj(self, filename, obj):
+        if not os.path.exists(os.path.dirname(filename)):
+            os.makedirs(os.path.dirname(filename))
         out = open(filename, 'wb')
         pickle.dump(obj, out)
         out.close()

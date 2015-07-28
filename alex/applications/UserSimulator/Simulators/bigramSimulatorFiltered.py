@@ -3,6 +3,7 @@
 
 from __future__ import unicode_literals
 from alex.components.slu.da import DialogueAct, DialogueActNBList
+import os
 from copy import deepcopy
 from alex.components.dm import Ontology
 
@@ -80,6 +81,9 @@ class BigramSimulatorFiltered(Simulator):
         return sim
 
     def save(self, cfg):
+        filename = cfg['UserSimulation']['files']['model']
+        if not os.path.exists(os.path.dirname(filename)):
+            os.makedirs(os.path.dirname(filename))
         self.simulator.save(cfg['UserSimulation']['files']['model'])
         self.slotvals.save(cfg['UserSimulation']['files']['slotvals'])
 

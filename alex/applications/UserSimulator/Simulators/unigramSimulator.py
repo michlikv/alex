@@ -2,6 +2,7 @@
 # encoding: utf8
 
 from __future__ import unicode_literals
+import os
 from alex.components.slu.da import DialogueAct, DialogueActNBList
 
 from simulator import Simulator
@@ -57,6 +58,9 @@ class UnigramSimulator(Simulator):
         return sim
 
     def save(self, cfg):
+        filename = cfg['UserSimulation']['files']['model']
+        if not os.path.exists(os.path.dirname(filename)):
+            os.makedirs(os.path.dirname(filename))
         self.simulator.save(cfg['UserSimulation']['files']['model'])
 
     def generate_response_from_history(self, history):
