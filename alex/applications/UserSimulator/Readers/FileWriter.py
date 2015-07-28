@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 # encoding: utf8
 from __future__ import unicode_literals
-
 import codecs
 
 
@@ -9,10 +8,12 @@ class FileWriter:
 
     @staticmethod
     def write_file(filename, lines):
-        """
-        Writes list of lines to utf-8 encoded file.
-        :param filename: name of a file
-        :param lines: lines to write
+        """Write utf-8 encoded file from list of its lines.
+
+           :param filename: name of a file
+           :type filename: str
+           :param lines: list of lines
+           :type lines: list(str)
         """
         f = codecs.open(filename, "w", "utf-8")
         for l in lines:
@@ -22,10 +23,12 @@ class FileWriter:
 
     @staticmethod
     def write_file_append(filename, lines):
-        """
-        Writes list of lines to utf-8 encoded file.
-        :param filename: name of a file
-        :param lines: lines to write
+        """Append to utf-8 encoded file from list of its lines.
+
+           :param filename: name of a file
+           :type filename: str
+           :param lines: list of lines
+           :type lines: list(str)
         """
         f = codecs.open(filename, "a", "utf-8")
         for l in lines:
