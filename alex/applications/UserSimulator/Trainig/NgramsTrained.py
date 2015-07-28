@@ -14,6 +14,9 @@ except:
 
 
 class NgramsTrained(TrainedStructure):
+    """
+    Implementation of n-gram model
+    """
 
     def __init__(self, n):
         self._structure_unigrams = defaultdict(int)
@@ -23,6 +26,10 @@ class NgramsTrained(TrainedStructure):
         self._pp = pprint.PrettyPrinter(indent=4)
 
     def train_counts(self, dialogue):
+        """Add counts of n-grams from the dialogue to structures
+
+        :param dialogue: list of system and user actions
+        """
         bigr = list(NgramsTrained._ngrams(self._prefix+dialogue, self._ngram_n))
         bigr = Counter([gram for pos, gram in enumerate(bigr) if pos % 2 == 0])
         # print bigr
@@ -31,9 +38,12 @@ class NgramsTrained(TrainedStructure):
             self._structure[ngram[:-1]][ngram[-1]] += count
             self._structure_unigrams[ngram[-1]] += count
 
-    # returns list of possible reactions with its counts and total count as tuple
-    # or null if history is unknown
     def get_possible_reactions(self, hist):
+        """Find history in the structure and return possible reactions with counts
+
+        :param hist: history
+        :return: list of possible reactions with its counts and total count, or None if history is unknown.
+        """
         if self._structure.get(hist, None):
             keys = []
             vals = []
@@ -45,16 +55,17 @@ class NgramsTrained(TrainedStructure):
             return None, [], []
 
     def print_table_bigrams(self):
-        #print self.pp.pprint(self.structure.keys())
         print self._pp.pprint(dict(self._structure[(unicode(DialogueAct('hello()')),)], sort_keys=False, indent=2))
         print 'asking for ', (unicode(DialogueAct('hello()')),)
 
     def print_table_unigrams(self):
         print self._pp.pprint(dict(self._structure_unigrams, sort_keys=False, indent=2))
 
-    # returns list of possible reactions by unigram prob
-    # or none if empty
     def get_possible_unigrams(self):
+        """ Return all unigrams with counts
+
+        :return: list of possible reactions with unigram counts
+        """
         if len(self._structure_unigrams.items()) != 0:
             keys = []
             vals = []
@@ -79,7 +90,11 @@ class NgramsTrained(TrainedStructure):
                 break
 
     def save(self, filename):
-        """Saves object to file"""
+        """Saves object to file
+
+        :param filename: name of file
+        """
+
         self._structure = dict(self._structure)
         out = open(filename, 'wb')
         pickle.dump(self._structure_unigrams, out)
@@ -90,7 +105,10 @@ class NgramsTrained(TrainedStructure):
 
     @staticmethod
     def load(filename):
-        """Returns the instance of TrainedStructure from the pickle string"""
+        """Load object from file
+
+        :param filename: name of file
+        """
         input = open(filename, 'rb')
         obj = NgramsTrained(2)
         obj._structure_unigrams = pickle.load(input)
